@@ -18,12 +18,20 @@ var LIBRARY_OBJECT = (function() {
      *************************************************************************/
     var aquiferGroup,
         $geoserverUrl,
+        layer_control,
         map,
         markers,
+        min_obs,
+        max_obs,
         $modalChart,
+        overlay_maps,
         public_interface,				// Object returned by the module
+        rangeMin,
+        rangeMax,
+        slidervar,
         $threddsUrl,
-        wellsGroup;
+        wfs_response,
+        well_obs;
 
     /************************************************************************
      *                    PRIVATE FUNCTION DECLARATIONS
@@ -31,16 +39,23 @@ var LIBRARY_OBJECT = (function() {
 
     var get_ts,
         generate_chart,
+        get_well_obs,
         init_all,
         init_events,
         init_jquery_vars,
         init_dropdown,
         init_map,
+        init_slider,
+        original_map_chart,
+        resize_map_chart,
         reset_alert,
         reset_form,
         set_outlier,
         view_aquifer,
-        view_wells;
+        view_wells,
+        wfs_style_function,
+        wfs_feature_function,
+        wfs_filter_function;
 
 
     /************************************************************************
@@ -51,6 +66,20 @@ var LIBRARY_OBJECT = (function() {
         if("success" in result){
             addSuccessMessage('');
         }
+    };
+
+    resize_map_chart = function(){
+        $('#chart').addClass('partial-chart');
+        $('#chart').removeClass('full-chart');
+        $('#map').removeClass('full-map');
+        $('#map').addClass('partial-map');
+    };
+
+    original_map_chart = function(){
+        $('#chart').removeClass('partial-chart');
+        $('#chart').addClass('full-chart');
+        $('#map').addClass('full-map');
+        $('#map').removeClass('partial-map');
     };
 
     init_jquery_vars = function(){
@@ -134,12 +163,84 @@ var LIBRARY_OBJECT = (function() {
                     iconSize: null
                 });
             }}).addTo(map);
+
+        overlay_maps = {
+            "Aquifer Boundary": aquiferGroup,
+            "Wells": markers
+        };
+
+        layer_control = L.control.layers(null, overlay_maps).addTo(map);
+
+        // L.control.opacity(
+        //     overlay_maps,
+        //     {
+        //         label: 'Opacity',
+        //         collapsed: true
+        //     }
+        // ).addTo(map);
+        var min_input = L.control({position: 'topright'});
+        min_input.onAdd = function(map){
+            var div = L.DomUtil.create('div', 'min_input');
+            div.innerHTML = 'Min:<input type="number" class="form-control input-sm" name="leg_min" id="col_min" min="-50000" max="50000" step="10" value="-500">';
+            return div;
+        };
+        min_input.addTo(map);
+
+        var max_input = L.control({position: 'topright'});
+        max_input.onAdd = function(map){
+            var div = L.DomUtil.create('div', 'max_input');
+            div.innerHTML = 'Max:<input type="number" class="form-control input-sm" name="leg_max" id="col_max" min="-50000" max="50000" step="10" value="0">';
+            return div;
+        };
+        max_input.addTo(map);
+
+
+        // style   :
+        //     {
+        //         position: 'absolute',
+        //         left: '50px',
+        //         top: '0px',
+        //         width: '200px',
+        //     },
     };
 
 
     $('#update-well').on('hide.bs.modal', function () {
         reset_form({"reset": "reset"});
     });
+
+    wfs_style_function = function (feature) {
+        return {
+            stroke: false,
+            fillColor: 'FFFFFF',
+            fillOpacity: 0
+        };
+    };
+
+    wfs_feature_function = function (feature, layer) {
+        var popupOptions = {maxWidth: 200};
+        if (feature.properties) {
+            var popupString = '<div class="popup">';
+            // var well_id = feature.id.split('.')[1];
+            // console.log(well_id, well_obs[well_id]);
+            popupString += '<span class="well_id" well-id="'+feature.id+'">'+feature.id+'</span><br/>';
+            for (var k in feature.properties) {
+                var v = feature.properties[k];
+                popupString += k + ': ' + v + '<br />';
+            }
+            // console.log(well_obs[well_id]);
+            popupString += '<a class="btn btn-default set-outlier" id="set-outlier" name="set-outlier">Set/Unset as Outlier</a></div>';
+            layer.bindPopup(popupString);
+            layer.on('click', get_ts);
+        }
+    };
+
+    wfs_filter_function = function(feature) {
+        var well_id = feature.id.split('.')[1];
+        if(parseInt(rangeMin) <= parseInt(well_obs[well_id]) && parseInt(well_obs[well_id]) <= parseInt(rangeMax)){
+            return true
+        }
+    };
 
     view_aquifer = function(aquifer_id){
         var defaultParameters = {
@@ -197,32 +298,11 @@ var LIBRARY_OBJECT = (function() {
             dataType : 'jsonp',
             jsonpCallback : 'getJson',
             success : function (response) {
-                var WFSLayer = null;
-                WFSLayer = L.geoJson(response, {
-                    style: function (feature) {
-                        return {
-                            stroke: false,
-                            fillColor: 'FFFFFF',
-                            fillOpacity: 0
-                        };
-                    },
-                    onEachFeature: function (feature, layer) {
-                        var popupOptions = {maxWidth: 200};
-                        if (feature.properties) {
-                            var popupString = '<div class="popup">';
-                            popupString += '<span class="well_id" well-id="'+feature.id+'">'+feature.id+'</span><br/>';
-                            for (var k in feature.properties) {
-                                var v = feature.properties[k];
-                                popupString += k + ': ' + v + '<br />';
-                            }
-                            popupString += '</div>';
-                            layer.bindPopup(popupString);
-                            layer.on('click', get_ts);
-                        }
-
-                    }
+                wfs_response = response;
+                L.geoJson(wfs_response, {
+                    style: wfs_style_function,
+                    onEachFeature: wfs_feature_function
                 }).addTo(markers);
-
             }
         });
     };
@@ -241,8 +321,9 @@ var LIBRARY_OBJECT = (function() {
         var xhr = ajax_update_database_with_file("get-timeseries", data);
         xhr.done(function(return_data){
             if("success" in return_data){
-                $modalChart.modal('show');
-                // reset_form(return_data)
+                // $modalChart.modal('show');
+                // reset_form(return_data);
+                resize_map_chart();
                 generate_chart(return_data);
                 // addSuccessMessage("Aquifer Update Successful!");
             }else if("error" in return_data){
@@ -264,7 +345,6 @@ var LIBRARY_OBJECT = (function() {
         var xhr = ajax_update_database_with_file("set-outlier", data);
         xhr.done(function(return_data){
             if("success" in return_data){
-                console.log(return_data);
                 // addSuccessMessage("Aquifer Update Successful!");
             }else if("error" in return_data){
                 // addErrorMessage(return_data["error"]);
@@ -273,11 +353,15 @@ var LIBRARY_OBJECT = (function() {
         });
     };
 
-    $("#set-outlier").click(set_outlier);
+    // $("#set-outlier").click(set_outlier);
+    jQuery("body").on('click','a.set-outlier', function(e){
+        e.preventDefault();
+        set_outlier();
+    });
 
     generate_chart = function(result){
         var variable_name = $("#variable-select option:selected").text();
-        Highcharts.stockChart('plotter',{
+        Highcharts.stockChart('chart',{
 
             // chart: {
             //     type:'spline',
@@ -317,13 +401,59 @@ var LIBRARY_OBJECT = (function() {
         });
     };
 
+    get_well_obs = function(aquifer_id, variable_id){
+        var data = {"aquifer_id": aquifer_id, "variable_id": variable_id};
+        var xhr = ajax_update_database("get-well-obs", data);
+        xhr.done(function(return_data){
+            if("success" in return_data){
+                well_obs = return_data['obs_dict'];
+                if('min_obs' in return_data){
+                    min_obs = return_data['min_obs'];
+                    max_obs = return_data['max_obs'];
+                    document.getElementById('input-number-min').setAttribute("value", min_obs);
+                    document.getElementById('input-number-max').setAttribute("value", max_obs);
+                    slidervar.noUiSlider.updateOptions({
+                        start: [min_obs, max_obs],
+                        range: {
+                            'min': min_obs,
+                            'max': max_obs
+                        }
+                    });
+                    slidervar.removeAttribute('disabled');
+                }else{
+                    slidervar.setAttribute('disabled', true);
+                }
+                view_wells(aquifer_id);
+
+                // addSuccessMessage("Aquifer Update Successful!");
+            }else if("error" in return_data){
+                // addErrorMessage(return_data["error"]);
+                console.log('err');
+            }
+        });
+    };
+
     init_dropdown = function () {
+    };
+
+    init_slider = function(){
+        slidervar = document.getElementById('slider');
+        noUiSlider.create(slidervar, {
+            connect: true,
+            start: [ 1, 700 ],
+            step: 1,
+            range: {
+                min: 1,
+                max: 700
+            }
+        });
     };
 
     init_all = function(){
         init_jquery_vars();
         init_map();
         init_dropdown();
+        init_slider();
     };
 
     /************************************************************************
@@ -350,9 +480,37 @@ var LIBRARY_OBJECT = (function() {
         init_all();
         $("#aquifer-select").change(function(){
             var aquifer_id = $("#aquifer-select option:selected").val();
+            var variable_id = $("#variable-select option:selected").val();
             view_aquifer(aquifer_id);
-            view_wells(aquifer_id);
+            get_well_obs(aquifer_id, variable_id);
+            original_map_chart();
         }).change();
+
+        $("#variable-select").change(function(){
+            var aquifer_id = $("#aquifer-select option:selected").val();
+            var variable_id = $("#variable-select option:selected").val();
+            get_well_obs(aquifer_id, variable_id);
+            original_map_chart();
+        });
+
+        slidervar.noUiSlider.on('update', function( values, handle ) {
+
+            //handle = 0 if min-slider is moved and handle = 1 if max slider is moved
+            if (handle==0){
+                document.getElementById('input-number-min').value = values[0];
+            } else {
+                document.getElementById('input-number-max').value =  values[1];
+            }
+            rangeMin = document.getElementById('input-number-min').value;
+            rangeMax = document.getElementById('input-number-max').value;
+            markers.clearLayers();
+            L.geoJson(wfs_response, {
+                style: wfs_style_function,
+                onEachFeature: wfs_feature_function,
+                filter: wfs_filter_function
+            }).addTo(markers);
+        });
+
     });
 
     return public_interface;

@@ -15,6 +15,7 @@ import json
 from tethys_sdk.gizmos import (TextInput,
                                SelectInput)
 from pandarallel import pandarallel
+from sqlalchemy.sql import func
 import time
 from datetime import datetime
 import calendar
@@ -393,10 +394,24 @@ def get_timeseries(well_id, variable_id):
     well_id = well_id.split('.')[1]
     ts_obj = session.query(Measurement).filter(Measurement.well_id == well_id,
                                                Measurement.variable_id == variable_id).all()
-    timeseries = [[calendar.timegm(datetime.strptime(obj.ts_time, obj.ts_format).utctimetuple())*1000, obj.ts_value] for obj in ts_obj]
+    timeseries = [[calendar.timegm(datetime.strptime(obj.ts_time, obj.ts_format).utctimetuple())*1000, obj.ts_value]
+                  for obj in ts_obj]
     timeseries = sorted(timeseries)
     session.close()
     return timeseries
+
+
+def get_well_obs(aquifer_id, variable_id):
+    session = get_session_obj()
+    wells_list = [r.id for r in session.query(Well.id).filter(Well.aquifer_id == aquifer_id).distinct()]
+
+    m_query = (session.query(Measurement.well_id,
+                             func.count(Measurement.ts_value).label('obs'))
+               .group_by(Measurement.well_id)
+               .filter(Measurement.well_id.in_(wells_list),
+                       Measurement.variable_id == variable_id))
+    obs_dict = {w.well_id: w.obs for w in m_query}
+    return obs_dict
 
 
 def get_well_info(well_id):
@@ -418,8 +433,9 @@ def create_outlier(well_id):
     session = get_session_obj()
     well_id = well_id.split('.')[1]
     well_obj = session.query(Well).filter(Well.id == well_id).first()
-    well_obj.outlier = True
+    set_value = not well_obj.outlier
+    well_obj.outlier = set_value
     session.commit()
     session.flush()
     session.close()
-    return True
+    return set_value

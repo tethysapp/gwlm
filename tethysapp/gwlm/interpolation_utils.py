@@ -424,9 +424,9 @@ def extract_query_objects(region_id, aquifer_id, variable):
     aquifer_obj = session.query(gf2.ST_AsText(Aquifer.geometry)).filter(Aquifer.region_id == region_id,
                                                                         Aquifer.id == aquifer_id).first()
     bbox = wkt.loads(aquifer_obj[0]).bounds
+    print(bbox)
     wells_query = session.query(Well).filter(Well.aquifer_id == aquifer_id)
     wells_query_df = pd.read_sql(wells_query.statement, session.bind)
-    well_ids = [int(w_id) for w_id in wells_query_df.id.unique()]
     # well_dict = {well.id: well.gse for well in wells_query_df.itertuples()}
     m_query = session.query(Measurement).filter(Measurement.well_id.in_(well_ids),
                                                 Measurement.variable_id == variable)

@@ -12,6 +12,7 @@ from .utils import (create_outlier,
                     process_aquifer_shapefile,
                     get_shapefile_attributes,
                     get_timeseries,
+                    get_well_obs,
                     get_well_info,
                     process_wells_file,
                     process_measurements_file)
@@ -472,7 +473,6 @@ def region_timeseries(request):
     response = {}
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
-        print(info)
         aquifer_id = info.get('aquifer_id')
         well_id = info.get('well_id')
         variable_id = info.get('variable_id')
@@ -482,6 +482,22 @@ def region_timeseries(request):
         response['well_info'] = get_well_info(well_id)
 
         return JsonResponse(response)
+
+
+def region_well_obs(request):
+    response = {}
+    if request.is_ajax() and request.method == 'POST':
+        info = request.POST
+        aquifer_id = info.get('aquifer_id')
+        variable_id = info.get('variable_id')
+        well_obs = get_well_obs(aquifer_id, variable_id)
+        response['obs_dict'] = well_obs
+        if len(well_obs) > 0:
+            response['min_obs'] = min(well_obs.values())
+            response['max_obs'] = max(well_obs.values())
+        response['success'] = 'success'
+
+    return JsonResponse(response)
 
 
 def set_outlier(request):
