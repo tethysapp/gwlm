@@ -88,6 +88,7 @@ var LIBRARY_OBJECT = (function() {
         $threddsUrl = $("#thredds-text-input").val();
     };
 
+
     init_map = function(){
         map = L.map('map',{
             zoom: 3,
@@ -164,6 +165,17 @@ var LIBRARY_OBJECT = (function() {
                 });
             }}).addTo(map);
 
+
+        $('#cluster-toggle').change(function() {
+            // this will contain a reference to the checkbox
+            if (this.checked) {
+                markers.enableClustering();
+
+            } else {
+                markers.disableClustering();
+            }
+        });
+
         overlay_maps = {
             "Aquifer Boundary": aquiferGroup,
             "Wells": markers
@@ -181,7 +193,7 @@ var LIBRARY_OBJECT = (function() {
         var min_input = L.control({position: 'topright'});
         min_input.onAdd = function(map){
             var div = L.DomUtil.create('div', 'min_input');
-            div.innerHTML = 'Min:<input type="number" class="form-control input-sm" name="leg_min" id="col_min" min="-50000" max="50000" step="10" value="-500">';
+            div.innerHTML = '<b>Min:</b><input type="number" class="form-control input-sm" name="leg_min" id="col_min" min="-5000" max="5000" step="10" value="-500">';
             return div;
         };
         min_input.addTo(map);
@@ -189,10 +201,38 @@ var LIBRARY_OBJECT = (function() {
         var max_input = L.control({position: 'topright'});
         max_input.onAdd = function(map){
             var div = L.DomUtil.create('div', 'max_input');
-            div.innerHTML = 'Max:<input type="number" class="form-control input-sm" name="leg_max" id="col_max" min="-50000" max="50000" step="10" value="0">';
+            div.innerHTML = '<b>Max:</b><input type="number" class="form-control input-sm" name="leg_max" id="col_max" ' +
+                'min="-5000" max="5000" step="10" value="0">';
             return div;
         };
         max_input.addTo(map);
+
+        var symbology_input = L.control({position: 'topright'});
+        symbology_input.onAdd = function(map){
+            var div = L.DomUtil.create('div', 'symbology_input');
+            div.innerHTML = '<select  id="select_symbology">'+
+                '<option value="" selected disabled>Select Symboloy</option>' +
+                '<option value="grace">GRACE</option>' +
+                '<option value="bluered">Red-Blue</option>' +
+                '<option value="greyscale">Grey Scale</option>' +
+                '<option value="alg2">alg2</option>' +
+                '<option value="sst_36">sst_36</option>' +
+                '<option value="rainbow">Rainbow</option>' +
+                '</select>';
+            return div
+        };
+        symbology_input.addTo(map);
+
+        var opacity_input = L.control({position: 'topright'});
+        opacity_input.onAdd = function(map){
+            var div = L.DomUtil.create('div', 'opacity_input');
+            div.innerHTML = '<b>Opacity:</b><input type="number" class="form-control input-sm" name="opacity" id="opacity_val" ' +
+                'min="0" max="1" step="0.1" value="0.7">';
+            return div;
+        };
+        opacity_input.addTo(map);
+
+
 
 
         // style   :
@@ -407,15 +447,17 @@ var LIBRARY_OBJECT = (function() {
         xhr.done(function(return_data){
             if("success" in return_data){
                 well_obs = return_data['obs_dict'];
+
+                // console.log(Object.keys(well_obs).length);
                 if('min_obs' in return_data){
                     min_obs = return_data['min_obs'];
                     max_obs = return_data['max_obs'];
                     document.getElementById('input-number-min').setAttribute("value", min_obs);
                     document.getElementById('input-number-max').setAttribute("value", max_obs);
                     slidervar.noUiSlider.updateOptions({
-                        start: [min_obs, max_obs],
+                        start: [0, max_obs],
                         range: {
-                            'min': min_obs,
+                            'min': 0,
                             'max': max_obs
                         }
                     });
@@ -440,10 +482,10 @@ var LIBRARY_OBJECT = (function() {
         slidervar = document.getElementById('slider');
         noUiSlider.create(slidervar, {
             connect: true,
-            start: [ 1, 700 ],
+            start: [ 0, 700 ],
             step: 1,
             range: {
-                min: 1,
+                min: 0,
                 max: 700
             }
         });

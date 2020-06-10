@@ -1,5 +1,5 @@
 from tethys_sdk.base import TethysAppBase, url_map_maker
-from tethys_sdk.app_settings import PersistentStoreDatabaseSetting, SpatialDatasetServiceSetting
+from tethys_sdk.app_settings import PersistentStoreDatabaseSetting, SpatialDatasetServiceSetting, CustomSetting
 
 
 class Gwlm(TethysAppBase):
@@ -223,6 +223,20 @@ class Gwlm(TethysAppBase):
         )
 
         return url_maps
+
+    def custom_settings(self):
+
+        custom_settings = (
+            CustomSetting(
+                name='gw_thredds_directoy',
+                type=CustomSetting.TYPE_STRING,
+                description='Path to the Ground Water Thredds Directory',
+                required=True
+            ),
+        )
+
+        return custom_settings
+
 
     def persistent_store_settings(self):
         """

@@ -8,6 +8,21 @@
 /*    width:100%;*/
 /*    position: relative;*/
 /*}*/
+.min_input{
+    background: #888888;
+    border-radius: 4px;
+}
+.max_input{
+    background: #888888;
+    border-radius: 4px;
+}
+.opacity_input{
+    background: #888888;
+    border-radius: 4px;
+}
+.symbology_input select{
+    border-radius: 3px;
+}
 .full-map{
     height: 100%;
     width: 100%;

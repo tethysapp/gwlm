@@ -288,6 +288,10 @@ function reset_alert(){
         .removeClass('alert-danger');
 }
 
+function sum(obj) {
+    return Object.keys(obj).reduce((sum,key)=>sum+parseFloat(obj[key]||0),0);
+}
+
 $(function(){
     // $('#app-content-wrapper').removeClass('show-nav');
     // $(".toggle-nav").removeClass('toggle-nav');

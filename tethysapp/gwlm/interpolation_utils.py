@@ -24,6 +24,10 @@ import rioxarray
 import xarray
 import json
 import geojson
+import os
+import shutil
+from pathlib import Path
+import tempfile
 from shapely.geometry import mapping
 from .model import (Region,
                     Aquifer,
@@ -421,12 +425,13 @@ def fit_model_var(coords_df, x_c, y_c, values):
 def extract_query_objects(region_id, aquifer_id, variable):
 
     session = get_session_obj()
-    aquifer_obj = session.query(gf2.ST_AsText(Aquifer.geometry)).filter(Aquifer.region_id == region_id,
+    aquifer_obj = session.query(gf2.ST_AsText(Aquifer.geometry), Aquifer.aquifer_name).filter(Aquifer.region_id == region_id,
                                                                         Aquifer.id == aquifer_id).first()
     bbox = wkt.loads(aquifer_obj[0]).bounds
     print(bbox)
     wells_query = session.query(Well).filter(Well.aquifer_id == aquifer_id)
     wells_query_df = pd.read_sql(wells_query.statement, session.bind)
+    well_ids = [int(well_id) for well_id in wells_query_df.id.values]
     # well_dict = {well.id: well.gse for well in wells_query_df.itertuples()}
     m_query = session.query(Measurement).filter(Measurement.well_id.in_(well_ids),
                                                 Measurement.variable_id == variable)
@@ -465,64 +470,10 @@ def krig_imputed_wells(years_df, coords_df, values, x_coords, y_coords, grid_x, 
     krig_plots.close()
 
 
-def mlr_interpolation(mlr_dict):
-    region_id = mlr_dict['region']
-    aquifer_id = mlr_dict['aquifer']
-    variable = mlr_dict['variable']
-    min_samples = mlr_dict['min_samples']
-    gap_size = mlr_dict['gap_size']
-    pad = mlr_dict['pad']
-    spacing = mlr_dict['spacing']
-
-    start_date = datetime.datetime(mlr_dict['start_date'], 1, 1)
-    end_date = datetime.datetime(mlr_dict['end_date'], 1, 1)
-
-    bbox, wells_query_df, measurements_df, aquifer_obj = extract_query_objects(region_id, aquifer_id, variable)
-
-    pdsi_df = get_thredds_value(SERVER1, LAYER1, bbox)  # pdsi values
-    soilw_df = get_thredds_value(SERVER2, LAYER2, bbox)  # soilw values
-    gldas_df = pd.concat([pdsi_df, soilw_df], join="outer", axis=1)
-    gldas_df = sat_resample(gldas_df)
-    gldas_df, names = sat_rolling_window(YEARS, gldas_df)
-
-    wells_df = pd.concat([extract_well_data(name, group,  start_date, end_date, min_samples)
-                          for name, group in measurements_df.groupby('well_id')], axis=1, sort=False)
-
-    wells_df.drop_duplicates(inplace=True)
-    well_names = wells_df.columns
-    wells_df.to_csv('wells_df.csv')
-    well_interp_df = interp_well(wells_df, gap_size, pad, spacing)
-    well_interp_df.to_csv('well_interp.csv')
-    # combine the  data from the wells and the satellite observations  to a single dataframe (combined_df)
-    # this will have a row for every measurement (on the start of the month) a column for each well,
-    # and a column for pdsi and soilw and their rolling averages, and potentially offsets
-    combined_df = pd.concat([well_interp_df, gldas_df], join="outer", axis=1, sort=False)
-    combined_df.dropna(subset=names, inplace=True)  # drop rows where there are no satellite data
-
-    norm_df = norm_training_data(combined_df, combined_df)
-    imputed_norm_df = impute_data(norm_df, well_names, names)
-    ref_df = combined_df[well_names]
-    imputed_df = renorm_data(imputed_norm_df, ref_df)
-    # print(imputed_df)
-
-    plot_imputed_results(wells_df, combined_df, imputed_df, well_names)
-    imputed_well_names = imputed_df.columns  # create a list of well names
-    loc_well_names = [int(strg.replace('_imputed', '')) for strg in imputed_well_names]  # strip off "_imputed"
-    coords_df = wells_query_df[wells_query_df.id.isin(loc_well_names)]
-    x_coords = coords_df.longitude.values
-    y_coords = coords_df.latitude.values
-
-    # create grid
-    x_steps = 400  # steps in x-direction, number of y-steps will be computed with same spacing, adds 10%
-    grid_x, grid_y = create_grid_coords(x_coords, y_coords, x_steps)  # coordinates for x and y axis - not full grid
-
-    skip_month = 48  # take data every nth month (skip_months), e.g., 60 = every 5 years
-    years_df = imputed_df.iloc[::skip_month].T  # extract every nth month of data and transpose array
-    print(len(years_df))
-    file_name = 'well_data.nc'
-    # setup a netcdf file to store the time series of rasters
-    #
-    h = netCDF4.Dataset(file_name, 'w', format="NETCDF4")
+def generate_nc_file(file_name, grid_x, grid_y, years_df, coords_df, x_coords, y_coords):
+    temp_dir = tempfile.mkdtemp()
+    file_path = os.path.join(temp_dir, file_name)
+    h = netCDF4.Dataset(file_path, 'w', format="NETCDF4")
     lat_len = len(grid_y)
     lon_len = len(grid_x)
     time = h.createDimension("time", 0)
@@ -561,7 +512,20 @@ def mlr_interpolation(mlr_dict):
         time_counter += 1
 
     h.close()
-    interp_nc = xarray.open_dataset('well_data.nc')
+    print(file_path)
+    return Path(file_path)
+
+
+def clip_nc_file(file_path, aquifer_obj):
+    thredds_directory = app.get_custom_setting('gw_thredds_directoy')
+    aquifer_dir = os.path.join(thredds_directory, aquifer_obj[1])
+    if not os.path.exists(aquifer_dir):
+        os.makedirs(aquifer_dir)
+
+    output_file = os.path.join(aquifer_dir, file_path.name)
+    print('temp_dir', file_path.parent.absolute())
+    print(output_file)
+    interp_nc = xarray.open_dataset(file_path)
     interp_nc.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
     interp_nc.rio.write_crs("epsg:4326", inplace=True)
 
@@ -571,8 +535,71 @@ def mlr_interpolation(mlr_dict):
     # print(type(aq_geom_str))
     # cropping_geometries = [geojson.loads(aq_geom_str)]
     clipped_nc = interp_nc.rio.clip(aquifer_gdf.geometry.apply(mapping), crs=4326, drop=True)
-    clipped_nc.to_netcdf('clipped_well.nc')
-    return None
+    clipped_nc.to_netcdf(output_file)
+
+    return output_file
+
+
+def mlr_interpolation(mlr_dict):
+    region_id = mlr_dict['region']
+    aquifer_id = mlr_dict['aquifer']
+    variable = mlr_dict['variable']
+    min_samples = mlr_dict['min_samples']
+    gap_size = mlr_dict['gap_size']
+    pad = mlr_dict['pad']
+    spacing = mlr_dict['spacing']
+
+    start_date = datetime.datetime(mlr_dict['start_date'], 1, 1)
+    end_date = datetime.datetime(mlr_dict['end_date'], 1, 1)
+
+    bbox, wells_query_df, measurements_df, aquifer_obj = extract_query_objects(region_id, aquifer_id, variable)
+
+    pdsi_df = get_thredds_value(SERVER1, LAYER1, bbox)  # pdsi values
+    soilw_df = get_thredds_value(SERVER2, LAYER2, bbox)  # soilw values
+    gldas_df = pd.concat([pdsi_df, soilw_df], join="outer", axis=1)
+    gldas_df = sat_resample(gldas_df)
+    gldas_df, names = sat_rolling_window(YEARS, gldas_df)
+
+    wells_df = pd.concat([extract_well_data(name, group,  start_date, end_date, min_samples)
+                          for name, group in measurements_df.groupby('well_id')], axis=1, sort=False)
+
+    wells_df.drop_duplicates(inplace=True)
+    well_names = wells_df.columns
+    # wells_df.to_csv('wells_df.csv')
+    well_interp_df = interp_well(wells_df, gap_size, pad, spacing)
+    # well_interp_df.to_csv('well_interp.csv')
+    # combine the  data from the wells and the satellite observations  to a single dataframe (combined_df)
+    # this will have a row for every measurement (on the start of the month) a column for each well,
+    # and a column for pdsi and soilw and their rolling averages, and potentially offsets
+    combined_df = pd.concat([well_interp_df, gldas_df], join="outer", axis=1, sort=False)
+    combined_df.dropna(subset=names, inplace=True)  # drop rows where there are no satellite data
+
+    norm_df = norm_training_data(combined_df, combined_df)
+    imputed_norm_df = impute_data(norm_df, well_names, names)
+    ref_df = combined_df[well_names]
+    imputed_df = renorm_data(imputed_norm_df, ref_df)
+    # print(imputed_df)
+
+    plot_imputed_results(wells_df, combined_df, imputed_df, well_names)
+    imputed_well_names = imputed_df.columns  # create a list of well names
+    loc_well_names = [int(strg.replace('_imputed', '')) for strg in imputed_well_names]  # strip off "_imputed"
+    coords_df = wells_query_df[wells_query_df.id.isin(loc_well_names)]
+    x_coords = coords_df.longitude.values
+    y_coords = coords_df.latitude.values
+
+    # create grid
+    x_steps = 400  # steps in x-direction, number of y-steps will be computed with same spacing, adds 10%
+    grid_x, grid_y = create_grid_coords(x_coords, y_coords, x_steps)  # coordinates for x and y axis - not full grid
+
+    skip_month = 48  # take data every nth month (skip_months), e.g., 60 = every 5 years
+    years_df = imputed_df.iloc[::skip_month].T  # extract every nth month of data and transpose array
+    print(len(years_df))
+    file_name = 'well_data.nc'
+    # setup a netcdf file to store the time series of rasters
+    #
+    nc_file_path = generate_nc_file(file_name, grid_x, grid_y, years_df, coords_df, x_coords, y_coords)
+    final_nc_path = clip_nc_file(nc_file_path, aquifer_obj)
+    return final_nc_path
 
 
 def process_interpolation(info_dict):

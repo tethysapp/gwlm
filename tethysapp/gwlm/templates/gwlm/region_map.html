@@ -36,7 +36,7 @@
 <script src="https://code.highcharts.com/modules/no-data-to-display.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.5.0/nouislider.min.js"></script>
 <script src="{% static 'gwlm/vendor/leaflet/L.Control.Opacity.js' %}" type="text/javascript"></script>
-
+<script src="https://unpkg.com/leaflet.markercluster.freezable@1.0.0/dist/leaflet.markercluster.freezable.js"></script>
 {% endblock %}
 
 
@@ -46,6 +46,10 @@
 <li class="{% if request.path == home_url %}active{% endif %}"><a href="{{home_url}}">Go Home</a></li>
 {% gizmo aquifer_select %}
 {% gizmo variable_select %}
+<div>
+  <input type="checkbox" id="cluster-toggle" name="cluster-toggle" checked>
+  <label for="cluster-toggle">Toggle Clustering</label>
+</div>
 <label>
     Filter Wells By Observations
 </label>

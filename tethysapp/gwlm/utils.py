@@ -404,13 +404,15 @@ def get_timeseries(well_id, variable_id):
 def get_well_obs(aquifer_id, variable_id):
     session = get_session_obj()
     wells_list = [r.id for r in session.query(Well.id).filter(Well.aquifer_id == aquifer_id).distinct()]
-
     m_query = (session.query(Measurement.well_id,
                              func.count(Measurement.ts_value).label('obs'))
                .group_by(Measurement.well_id)
                .filter(Measurement.well_id.in_(wells_list),
                        Measurement.variable_id == variable_id))
     obs_dict = {w.well_id: w.obs for w in m_query}
+    zero_obs_wells = set(wells_list) - set(obs_dict.keys())
+    for well in zero_obs_wells:
+        obs_dict[well] = 0
     return obs_dict
 
 
