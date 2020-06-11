@@ -46,6 +46,26 @@ class Gwlm(TethysAppBase):
                 controller='gwlm.controllers_ajax.get_aquifers'
             ),
             UrlMap(
+                name='run-dask',
+                url='gwlm/dask/add/{job_type}',
+                controller='gwlm.controllers.run_job'
+            ),
+            UrlMap(
+                name='jobs-table',
+                url='gwlm/dask/jobs_table',
+                controller='gwlm.controllers.jobs_table'
+            ),
+            UrlMap(
+                name='result',
+                url='gwlm/dask/result/{job_id}',
+                controller='gwlm.controllers.result'
+            ),
+            UrlMap(
+                name='error_message',
+                url='gwlm/dask/error',
+                controller='gwlm.controllers.error_message'
+            ),
+            UrlMap(
                 name='region-map',
                 url='gwlm/region-map',
                 controller='gwlm.controllers.region_map'

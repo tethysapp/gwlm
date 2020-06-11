@@ -35,6 +35,7 @@ from .model import (Region,
                     Measurement,
                     Variable)
 
+
 INFO_DICT = {'region': '3',
              'aquifer': '24',
              'variable': '1',
@@ -523,8 +524,7 @@ def clip_nc_file(file_path, aquifer_obj):
         os.makedirs(aquifer_dir)
 
     output_file = os.path.join(aquifer_dir, file_path.name)
-    print('temp_dir', file_path.parent.absolute())
-    print(output_file)
+    temp_dir = file_path.parent.absolute()
     interp_nc = xarray.open_dataset(file_path)
     interp_nc.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
     interp_nc.rio.write_crs("epsg:4326", inplace=True)
@@ -536,6 +536,7 @@ def clip_nc_file(file_path, aquifer_obj):
     # cropping_geometries = [geojson.loads(aq_geom_str)]
     clipped_nc = interp_nc.rio.clip(aquifer_gdf.geometry.apply(mapping), crs=4326, drop=True)
     clipped_nc.to_netcdf(output_file)
+    shutil.rmtree(temp_dir)
 
     return output_file
 
@@ -580,7 +581,7 @@ def mlr_interpolation(mlr_dict):
     imputed_df = renorm_data(imputed_norm_df, ref_df)
     # print(imputed_df)
 
-    plot_imputed_results(wells_df, combined_df, imputed_df, well_names)
+    # plot_imputed_results(wells_df, combined_df, imputed_df, well_names)
     imputed_well_names = imputed_df.columns  # create a list of well names
     loc_well_names = [int(strg.replace('_imputed', '')) for strg in imputed_well_names]  # strip off "_imputed"
     coords_df = wells_query_df[wells_query_df.id.isin(loc_well_names)]

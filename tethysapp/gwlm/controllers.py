@@ -2,10 +2,14 @@ from django.shortcuts import render, reverse, redirect
 from django.contrib import messages
 from tethys_sdk.permissions import login_required
 from tethys_sdk.gizmos import Button, TextInput, SelectInput
+from django.http.response import HttpResponseRedirect
 from django.contrib.auth.decorators import user_passes_test
 from .utils import user_permission_test
 from .app import Gwlm as app
 from .model import Region, Aquifer, Variable
+from tethys_sdk.compute import get_scheduler
+from tethys_sdk.gizmos import JobsTable
+from tethys_compute.models.dask.dask_job_exception import DaskJobException
 from .utils import (geoserver_text_gizmo,
                     get_region_select,
                     get_aquifer_select,
@@ -13,6 +17,8 @@ from .utils import (geoserver_text_gizmo,
                     thredds_text_gizmo,
                     get_session_obj)
 import sys
+# get job manager for the app
+job_manager = app.get_job_manager()
 
 
 def home(request):
@@ -165,6 +171,7 @@ def interpolation(request):
                         style='primary',
                         name='submit',
                         attributes={'id': 'submit'},
+                        href=reverse('gwlm:run-dask', kwargs={'job_type': 'delayed'}),
                         classes="add")
 
     context = {
@@ -481,3 +488,104 @@ def update_variable(request):
         'desc_text_input': desc_text_input
     }
     return render(request, 'gwlm/update_variable.html', context)
+
+
+def run_job(request, job_type):
+    """
+    Controller for the app home page.
+    """
+    # Get test_scheduler app. This scheduler needs to be in the database.
+    scheduler = get_scheduler(name='dask_local')
+
+    if job_type.lower() == 'delayed':
+        from .job_functions import delayed_job
+
+        # Create dask delayed object
+        delayed = delayed_job()
+        dask = job_manager.create_job(
+            job_type='DASK',
+            name='dask_delayed',
+            user=request.user,
+            scheduler=scheduler,
+        )
+
+        # Execute future
+        dask.execute(delayed)
+
+    return HttpResponseRedirect(reverse('gwlm:jobs-table'))
+
+
+def jobs_table(request):
+    # Use job manager to get all the jobs.
+    jobs = job_manager.list_jobs(order_by='-id', filters=None)
+
+    # Table View
+    jobs_table_options = JobsTable(
+        jobs=jobs,
+        column_fields=('id', 'name', 'description', 'creation_time'),
+        hover=True,
+        striped=False,
+        bordered=False,
+        condensed=False,
+        results_url='gwlm:result',
+        refresh_interval=1000,
+        delete_btn=True,
+        show_detailed_status=True,
+    )
+
+    home_button = Button(
+        display_text='Home',
+        name='home_button',
+        attributes={
+            'data-toggle': 'tooltip',
+            'data-placement': 'top',
+            'title': 'Home'
+        },
+        href=reverse('gwlm:home')
+    )
+
+    context = {'jobs_table': jobs_table_options, 'home_button': home_button}
+
+    return render(request, 'gwlm/jobs_table.html', context)
+
+
+def result(request, job_id):
+    # Use job manager to get the given job.
+    job = job_manager.get_job(job_id=job_id)
+
+    # Get result and name
+    job_result = job.result
+    name = job.name
+
+    home_button = Button(
+        display_text='Home',
+        name='home_button',
+        attributes={
+            'data-toggle': 'tooltip',
+            'data-placement': 'top',
+            'title': 'Home'
+        },
+        href=reverse('gwlm:home')
+    )
+
+    jobs_button = Button(
+        display_text='Show All Jobs',
+        name='dask_button',
+        attributes={
+            'data-toggle': 'tooltip',
+            'data-placement': 'top',
+            'title': 'Show All Jobs'
+        },
+        href=reverse('gwlm:jobs-table')
+    )
+
+    context = {'result': job_result, 'name': name, 'home_button': home_button, 'jobs_button': jobs_button}
+
+    return render(request, 'gwlm/results.html', context)
+
+
+def error_message(request):
+    messages.add_message(request, messages.ERROR, 'Invalid Scheduler!')
+    return redirect(reverse('gwlm:home'))
+
+
