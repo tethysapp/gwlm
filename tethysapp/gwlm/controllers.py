@@ -12,6 +12,7 @@ from tethys_sdk.gizmos import JobsTable
 from tethys_compute.models.dask.dask_job_exception import DaskJobException
 from .utils import (geoserver_text_gizmo,
                     get_region_select,
+                    get_region_variable_select,
                     get_aquifer_select,
                     get_variable_select,
                     thredds_text_gizmo,
@@ -44,7 +45,8 @@ def region_map(request):
     aquifer_select = get_aquifer_select(region_id, aquifer_id=True)
     geoserver_text_input = geoserver_text_gizmo()
     thredds_text_input = thredds_text_gizmo()
-    variable_select = get_variable_select()
+    variable_select = get_region_variable_select(region_id=region_id)
+    # variable_select = get_variable_select()
 
     context = {
         'aquifer_select': aquifer_select,

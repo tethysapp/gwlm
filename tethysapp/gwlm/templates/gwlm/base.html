@@ -16,6 +16,7 @@
 
 {% url 'gwlm:home' as home_url %}
 {% url 'gwlm:interpolation' as interpolation_url %}
+{% url 'gwlm:jobs-table' as jobs_table %}
 {% url 'gwlm:add-region' as add_region_url %}
 {% url 'gwlm:update-region' as update_region_url %}
 {% url 'gwlm:add-aquifer' as add_aquifer_url %}
@@ -28,6 +29,7 @@
 <li class="title">Configuration</li>
 <li class="{% if request.path == home_url %}active{% endif %}"><a href="{{home_url}}">Home</a></li>
 <li class="{% if request.path == interpolation_url %}active{% endif %}"><a href="{{interpolation_url}}">Interpolation Wizard</a></li>
+<li class="{% if request.path == jobs_table %}active{% endif %}"><a href="{{jobs_table}}">Interpolation Jobs Table</a></li>
 <li class="{% if request.path == add_region_url %}active{% endif %}"><a href="{{add_region_url}}">Add Region</a></li>
 <li class="{% if request.path == update_region_url %}active{% endif %}"><a href="{{update_region_url}}">Edit Region</a></li>
 <li class="{% if request.path == add_aquifer_url %}active{% endif %}"><a href="{{add_aquifer_url}}">Add Aquifer</a></li>

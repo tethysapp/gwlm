@@ -14,6 +14,7 @@ from .utils import (create_outlier,
                     get_timeseries,
                     get_well_obs,
                     get_well_info,
+                    get_wms_datasets,
                     process_wells_file,
                     process_measurements_file)
 from tethys_sdk.workspaces import app_workspace
@@ -284,6 +285,7 @@ def get_well_attributes(request, app_workspace):
             shapefile = request.FILES.getlist('shapefile')
 
             attributes = get_shapefile_attributes(shapefile, app_workspace, False)
+            print(attributes)
 
             response = {"success": "success",
                         "attributes": attributes}
@@ -641,3 +643,17 @@ def interpolate(request):
         response['result'] = result
 
         return JsonResponse(response)
+
+
+def region_wms_datasets(request):
+
+    response = {}
+    if request.is_ajax() and request.method == 'POST':
+        # get/check information from AJAX request
+        post_info = request.POST
+        aquifer_name = post_info.get('aquifer_name')
+        print(aquifer_name)
+        well_files = get_wms_datasets(aquifer_name)
+        response['success'] = 'success'
+
+    return JsonResponse(response)

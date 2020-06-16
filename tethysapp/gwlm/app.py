@@ -81,6 +81,11 @@ class Gwlm(TethysAppBase):
                 controller='gwlm.controllers_ajax.region_well_obs'
             ),
             UrlMap(
+                name='region-map-wms-datasets',
+                url='gwlm/region-map/get-wms-datasets',
+                controller='gwlm.controllers_ajax.region_wms_datasets'
+            ),
+            UrlMap(
                 name='region-map-outlier',
                 url='gwlm/region-map/set-outlier',
                 controller='gwlm.controllers_ajax.set_outlier'

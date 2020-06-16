@@ -23,7 +23,7 @@ import netCDF4
 import rioxarray
 import xarray
 import json
-import geojson
+import time
 import os
 import shutil
 from pathlib import Path
@@ -595,7 +595,7 @@ def mlr_interpolation(mlr_dict):
     skip_month = 48  # take data every nth month (skip_months), e.g., 60 = every 5 years
     years_df = imputed_df.iloc[::skip_month].T  # extract every nth month of data and transpose array
     print(len(years_df))
-    file_name = 'well_data.nc'
+    file_name = f'{aquifer_obj[1]}_{time.time()}.nc'
     # setup a netcdf file to store the time series of rasters
     #
     nc_file_path = generate_nc_file(file_name, grid_x, grid_y, years_df, coords_df, x_coords, y_coords)
@@ -604,6 +604,7 @@ def mlr_interpolation(mlr_dict):
 
 
 def process_interpolation(info_dict):
+    start_time = time.time()
 
     print(info_dict)
     from_wizard = info_dict['from_wizard']
@@ -675,7 +676,9 @@ def process_interpolation(info_dict):
     if temporal_interpolation == 'MLR':
         mlr_interpolation(mlr_dict)
 
-    return info_dict
+    end_time = time.time()
+    total_time = end_time - start_time
+    return total_time
 
 
 # process_interpolation(INFO_DICT)

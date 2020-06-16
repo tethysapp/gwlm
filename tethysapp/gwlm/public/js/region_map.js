@@ -40,6 +40,7 @@ var LIBRARY_OBJECT = (function() {
     var get_ts,
         generate_chart,
         get_well_obs,
+        get_wms_datasets,
         init_all,
         init_events,
         init_jquery_vars,
@@ -441,6 +442,16 @@ var LIBRARY_OBJECT = (function() {
         });
     };
 
+    get_wms_datasets = function(aquifer_name){
+        var data = {"aquifer_name": aquifer_name};
+        var xhr = ajax_update_database("get-wms-datasets", data);
+        xhr.done(function(return_data) {
+            if ("success" in return_data) {
+                console.log(return_data);
+            }
+        });
+    };
+
     get_well_obs = function(aquifer_id, variable_id){
         var data = {"aquifer_id": aquifer_id, "variable_id": variable_id};
         var xhr = ajax_update_database("get-well-obs", data);
@@ -523,9 +534,11 @@ var LIBRARY_OBJECT = (function() {
         $("#aquifer-select").change(function(){
             var aquifer_id = $("#aquifer-select option:selected").val();
             var variable_id = $("#variable-select option:selected").val();
+            var aquifer_name = $("#aquifer-select option:selected").text();
             view_aquifer(aquifer_id);
             get_well_obs(aquifer_id, variable_id);
             original_map_chart();
+            get_wms_datasets(aquifer_name);
         }).change();
 
         $("#variable-select").change(function(){

@@ -84,12 +84,41 @@ def get_variable_select():
     return variable_select
 
 
+def get_region_variable_select(region_id):
+    session = get_session_obj()
+    variables = (session.query(Variable)
+                 .join(Measurement, Measurement.variable_id == Variable.id)
+                 .join(Well, Measurement.well_id == Well.id)
+                 .join(Aquifer, Well.aquifer_id == Aquifer.id)
+                 .filter(Aquifer.region_id == int(region_id))
+                 # .join(Aquifer, Region.id == Aquifer.region_id)
+                 # .join(Measurement, Well.id == Measurement.well_id)
+                 # .filter(Aquifer.region_id == int(region_id))
+                 .distinct()
+                 )
+
+    variable_list = []
+    for variable in variables:
+        variable_list.append((f'{variable.name}, {variable.units}', variable.id))
+
+    variable_select = SelectInput(display_text='Select Variable',
+                                  name='variable-select',
+                                  options=variable_list,
+                                  attributes={'id': 'variable-select'},
+                                  classes='variable-select')
+
+    session.close()
+    return  variable_select
+
+
 def process_region_shapefile(shapefile, region_name, app_workspace):
 
     session = get_session_obj()
     temp_dir = None
     try:
         gdf, temp_dir = get_shapefile_gdf(shapefile, app_workspace)
+        gdf['region_name'] = region_name
+        gdf = gdf.dissolve(by='region_name')
         region = Region(region_name=region_name, geometry=gdf.geometry.values[0])
         session.add(region)
         session.commit()
@@ -189,7 +218,7 @@ def get_shapefile_gdf(shapefile, app_workspace, polygons=True):
         gdf = gpd.read_file(gbyos_pol_shp)
 
     if upload_csv is not None:
-        df = pd.read_csv(upload_csv)
+        df = pd.read_csv(upload_csv, engine='python')
         if polygons:
             gdf = gpd.GeoDataFrame(df, crs={'init': 'epsg:4326'}, geometry=df['geometry'].apply(wkt.loads))
         else:
@@ -360,7 +389,7 @@ def process_measurements_file(region_id,
         well_dict = {well.well_id: well.id for well in wells}
         gdf['well_id'] = gdf['well_id'].astype(str)
         gdf['well_id'] = gdf['well_id'].map(well_dict)
-
+        gdf.dropna(subset=['time', 'value'], inplace=True)
         for row in gdf.itertuples():
             measurement = Measurement(well_id=int(row.well_id),
                                       variable_id=int(row.variable_id),
@@ -441,3 +470,12 @@ def create_outlier(well_id):
     session.flush()
     session.close()
     return set_value
+
+
+def get_wms_datasets(aquifer_id):
+    catalog = app.get_spatial_dataset_service('primary_thredds', as_engine=True)
+    print(catalog.catalog_refs)
+    print(catalog.catalog_url, catalog.base_tds_url)
+    # print(catalog.get_latest_access_url)
+
+    return None
