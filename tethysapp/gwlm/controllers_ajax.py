@@ -15,6 +15,8 @@ from .utils import (create_outlier,
                     get_well_obs,
                     get_well_info,
                     get_wms_datasets,
+                    get_region_aquifers_list,
+                    get_region_variables_list,
                     process_wells_file,
                     process_measurements_file)
 from tethys_sdk.workspaces import app_workspace
@@ -330,12 +332,11 @@ def get_aquifers(request):
         info = request.POST
 
         region_id = info.get('id')
-        session = get_session_obj()
-        aquifers = session.query(Aquifer).filter(Aquifer.region_id == region_id)
-        aquifers_list = [[aquifer.aquifer_name, aquifer.id] for aquifer in aquifers]
-        session.close()
+        aquifers_list = get_region_aquifers_list(region_id)
+        variables_list = get_region_variables_list(region_id)
 
         response = {'success': 'success',
+                    'variables_list': variables_list,
                     'aquifers_list': aquifers_list}
 
         return JsonResponse(response)
@@ -636,11 +637,14 @@ def interpolate(request):
     response = {}
     if request.is_ajax() and request.method == 'POST':
         # get/check information from AJAX request
-        post_info = request.POST
-        info_dict = post_info.dict()
-        result = process_interpolation(INFO_DICT)
-        response['success'] = 'success'
-        response['result'] = result
+        try:
+            post_info = request.POST
+            info_dict = post_info.dict()
+            result = process_interpolation(info_dict)
+            response['success'] = 'success'
+            response['result'] = result
+        except Exception as e:
+            response['error'] = str(e)
 
         return JsonResponse(response)
 

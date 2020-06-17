@@ -4,12 +4,16 @@
 
 {% block app_content %}
 <h1>Interpolation Wizard <a data-toggle="modal" data-target="#help-modal"><span class="glyphicon glyphicon-question-sign"></span></a></h1>
+<div id="message" class="alert alert-danger hidden" role="alert"></div>
 {% gizmo region_select %}
 {% gizmo aquifer_select %}
 {% gizmo variable_select %}
 {% gizmo select_porosity %}
 {% gizmo start_date %}
 {% gizmo end_date %}
+{% gizmo gap_size %}
+{% gizmo pad %}
+{% gizmo spacing %}
 {% gizmo frequency %}
 {% gizmo seasonal %}
 {% gizmo resolution %}

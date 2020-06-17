@@ -8,7 +8,8 @@ from scipy import interpolate
 import scipy.interpolate as sci_intrp
 import statsmodels.api as sm
 from shapely import wkb, wkt
-from .utils import (get_session_obj)
+from .utils import (get_session_obj,
+                    get_region_aquifers_list)
 from .app import Gwlm as app
 import gstools as gs
 import matplotlib.pyplot as plt
@@ -554,7 +555,6 @@ def mlr_interpolation(mlr_dict):
     end_date = datetime.datetime(mlr_dict['end_date'], 1, 1)
 
     bbox, wells_query_df, measurements_df, aquifer_obj = extract_query_objects(region_id, aquifer_id, variable)
-
     pdsi_df = get_thredds_value(SERVER1, LAYER1, bbox)  # pdsi values
     soilw_df = get_thredds_value(SERVER2, LAYER2, bbox)  # soilw values
     gldas_df = pd.concat([pdsi_df, soilw_df], join="outer", axis=1)
@@ -563,7 +563,6 @@ def mlr_interpolation(mlr_dict):
 
     wells_df = pd.concat([extract_well_data(name, group,  start_date, end_date, min_samples)
                           for name, group in measurements_df.groupby('well_id')], axis=1, sort=False)
-
     wells_df.drop_duplicates(inplace=True)
     well_names = wells_df.columns
     # wells_df.to_csv('wells_df.csv')
@@ -620,9 +619,6 @@ def process_interpolation(info_dict):
     iterations = (end_date - start_date) / (interval + 1)
     start_time = calendar.timegm(datetime.datetime(start_date, 1, 1).timetuple())
     end_time = calendar.timegm(datetime.datetime(end_date, 1, 1).timetuple())
-    print(interval)
-    print(start_time)
-    print(end_time)
 
     sixmonths = False
     threemonths = False
@@ -650,7 +646,12 @@ def process_interpolation(info_dict):
     min_samples = int(info_dict['min_samples'])
 
     region_id = int(info_dict['region'])
-    aquifer_id = int(info_dict['aquifer'])
+    aquifer_id = info_dict['aquifer']
+    if aquifer_id == 'all':
+        aquifer_list = [aquifer[1] for aquifer in get_region_aquifers_list(region_id)]
+    else:
+        aquifer_list = [int(aquifer_id)]
+
     seasonal = int(info_dict['seasonal'])
     variable = int(info_dict['variable'])
     min_ratio = float(info_dict['min_ratio'])
@@ -658,23 +659,25 @@ def process_interpolation(info_dict):
     gap_size = info_dict['gap_size']
     pad = int(info_dict['pad'])
     spacing = info_dict['spacing']
-    mlr_dict = {'region': region_id,
-                'aquifer': aquifer_id,
-                'min_samples': min_samples,
-                'variable': variable,
-                'start_time': start_time,
-                'end_time': end_time,
-                'min_ratio': min_ratio,
-                'time_tolerance': time_tolerance,
-                'start_date': start_date,
-                'end_date': end_date,
-                'resample_rate': resample_rate,
-                'gap_size': gap_size,
-                'pad': pad,
-                'spacing': spacing}
+
 
     if temporal_interpolation == 'MLR':
-        mlr_interpolation(mlr_dict)
+        for aquifer in aquifer_list:
+            mlr_dict = {'region': region_id,
+                        'aquifer': aquifer,
+                        'min_samples': min_samples,
+                        'variable': variable,
+                        'start_time': start_time,
+                        'end_time': end_time,
+                        'min_ratio': min_ratio,
+                        'time_tolerance': time_tolerance,
+                        'start_date': start_date,
+                        'end_date': end_date,
+                        'resample_rate': resample_rate,
+                        'gap_size': gap_size,
+                        'pad': pad,
+                        'spacing': spacing}
+            mlr_interpolation(mlr_dict)
 
     end_time = time.time()
     total_time = end_time - start_time

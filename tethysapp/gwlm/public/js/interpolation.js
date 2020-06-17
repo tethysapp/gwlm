@@ -52,6 +52,7 @@ var LIBRARY_OBJECT = (function() {
 
     form_validator = function(element, message){
         if(element === ""){
+            console.log(element, message);
             addErrorMessage(message);
             return false;
         }else{
@@ -67,7 +68,7 @@ var LIBRARY_OBJECT = (function() {
         var porosity = $("#select-porosity").val();
         var spatial_interpolation = $("#select-spatial-interpolation option:selected").val();
         var temporal_interpolation = $("#select-temporal-interpolation option:selected").val();
-        var interpolation_options = $("#interpolation_options option:selected").val();
+        // var interpolation_options = $("#interpolation_options option:selected").val();
         var search_radius = $("#select-search-radius option:selected").val();
         var ndmin = $("#select-ndmin option:selected").val();
         var ndmax = $("#select-ndmax option:selected").val();
@@ -80,14 +81,35 @@ var LIBRARY_OBJECT = (function() {
         var default_val = $("#default option:selected").val();
         var min_samples = $("#min-samples option:selected").val();
         var seasonal = $("#seasonal option:selected").val();
+        var gap = $("#gap-size-input").val();
+        var spacing = $("#spacing-input").val();
+        var pad = $("#pad-input").val();
 
-        form_validator(region, "Region cannot be empty!");
-        form_validator(aquifer, "Aquifer cannot be empty!");
-        form_validator(variable, "Variable cannot be empty!");
-        form_validator(porosity, "Porosity cannot be empty!");
-        form_validator(spatial_interpolation, "Spatial Interpolation cannot be empty!");
-        form_validator(temporal_interpolation, "Temporal Interpolation cannot be empty!");
-        form_validator(interpolation_options, "Interpolation options cannot be empty!");
+        // form_validator(region, "Region cannot be empty!");
+        // if(region === ""){
+        //     addErrorMessage("Region Cannot Be empty");
+        //     return false;
+        // }else{
+        //     reset_alert();
+        // }
+        // if(aquifer === ""){
+        //     addErrorMessage("Aquifer Cannot Be empty");
+        //     return false;
+        // }else{
+        //     reset_alert();
+        // }
+        // if(variable === ""){
+        //     addErrorMessage("Variable Cannot Be empty");
+        //     return false;
+        // }else{
+        //     reset_alert();
+        // }
+        // form_validator(aquifer, "Aquifer cannot be empty!");
+        // form_validator(variable, "Variable cannot be empty!");
+        // form_validator(porosity, "Porosity cannot be empty!");
+        // form_validator(spatial_interpolation, "Spatial Interpolation cannot be empty!");
+        // form_validator(temporal_interpolation, "Temporal Interpolation cannot be empty!");
+        // form_validator(interpolation_options, "Interpolation options cannot be empty!");
 
         addInfoMessage("Interpolation in Progress. Please wait...","message");
         var data = new FormData();
@@ -97,7 +119,7 @@ var LIBRARY_OBJECT = (function() {
         data.append("porosity", porosity);
         data.append("spatial_interpolation", spatial_interpolation);
         data.append("temporal_interpolation", temporal_interpolation);
-        data.append("interpolation_options", interpolation_options);
+        // data.append("interpolation_options", interpolation_options);
         data.append("search_radius", search_radius);
         data.append("ndmin", ndmin);
         data.append("ndmax", ndmax);
@@ -111,6 +133,9 @@ var LIBRARY_OBJECT = (function() {
         data.append("min_samples", min_samples);
         data.append("seasonal", seasonal);
         data.append("from_wizard", true);
+        data.append("gap_size", gap);
+        data.append("spacing", spacing);
+        data.append("pad", pad);
 
 
         var submit_button = $("#submit");
@@ -124,8 +149,15 @@ var LIBRARY_OBJECT = (function() {
                 console.log(return_data);
             }else{
                 submit_button.html(submit_button_html);
+                addErrorMessage(return_data['error']);
+                console.log(return_data['error'])
             }
         });
+        // xhr.fail(function(xhr, status, error){
+        //     console.log(xhr.responseText);
+        //     addErrorMessage(xhr.responseText);
+        //     submit_button.html(submit_button_html)
+        // });
     };
 
     $("#submit").click(submit_interpolation);
@@ -163,14 +195,22 @@ var LIBRARY_OBJECT = (function() {
             xhr.done(function(return_data){ //Reset the form once the data is added successfully
                 if("success" in return_data){
                     var options = return_data["aquifers_list"];
+                    var var_options = return_data["variables_list"];
                     $("#aquifer-select").html('');
+                    $("#variable-select").html('');
                     var empty_opt = '<option value="" selected disabled>Select item...</option>';
+                    var var_empty_opt = '<option value="" selected disabled>Select item...</option>';
                     var all_opt = new Option('All Aquifers', 'all');
                     $("#aquifer-select").append(empty_opt);
                     $("#aquifer-select").append(all_opt);
+                    $("#variable-select").append(var_empty_opt);
                     options.forEach(function(attr,i){
                         var aquifer_option = new Option(attr[0], attr[1]);
                         $("#aquifer-select").append(aquifer_option);
+                    });
+                    var_options.forEach(function(attr, i){
+                        var var_option = new Option(attr[0], attr[1]);
+                        $("#variable-select").append(var_option);
                     });
                 }else{
                     addErrorMessage(return_data['error']);

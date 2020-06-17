@@ -63,7 +63,7 @@ def interpolation(request):
 
     region_select = get_region_select()
     aquifer_select = get_aquifer_select(None)
-    variable_select = get_variable_select()
+    variable_select = get_region_variable_select(None)
     select_porosity = TextInput(display_text='Enter the storage coefficient for the aquifer:',
                                 name='select-porosity',
                                 initial='0.1',
@@ -79,14 +79,14 @@ def interpolation(request):
                                          name='select-temporal-interpolation',
                                          multiple=False,
                                          options=[("Pchip Interpolation", 'pchip'), ('Multi-Linear Regression', 'MLR')],
-                                         initial="Pchip Interpolation",
+                                         initial="Multi-Linear Regression",
                                          )
     well_sample_options = [(i, i) for i in range(101)]
     well_sample_options.append(("No Maximum", 999))
     rads = [(float(i)/10.0, float(i)/10.0) for i in range(1, 50)]
     for i in range(5, 10, 1):
         rads.append((i, i))
-    dates = [(i, i) for i in range(1850, 2019)]
+    dates = [(i, i) for i in range(1850, 2021)]
     tolerances = [(f'{i} Year', i) for i in range(1, 26)]
     tolerances.append(("50 Years", 50))
     tolerances.append(("No Limit", 999))
@@ -98,7 +98,6 @@ def interpolation(request):
                                        multiple=False,
                                        options=rads
                                        )
-
     select_ndmin = SelectInput(display_text='Minimum Wells to use for estimating a block',
                                name='select-ndmin',
                                options=well_sample_options,
@@ -113,7 +112,7 @@ def interpolation(request):
                              name='start-date',
                              multiple=False,
                              options=dates,
-                             initial=1950
+                             initial=1970
                              )
     resolution = SelectInput(display_text='Raster Resolution',
                              name='resolution',
@@ -126,18 +125,18 @@ def interpolation(request):
                            name='end-date',
                            multiple=False,
                            options=dates,
-                           initial=2018
+                           initial=1980
                            )
     min_ratio = SelectInput(display_text='Percent of Time Frame Well Timeseries Must Span',
                             name='min-ratio',
                             options=ratios,
-                            initial="75%"
+                            initial="25%"
                             )
     time_tolerance = SelectInput(display_text='Temporal Extrapolation Limit',
                                  name='time-tolerance',
                                  multiple=False,
                                  options=tolerances,
-                                 initial="5 Years"
+                                 initial="20 Year"
                                  )
     frequency = SelectInput(display_text='Time Increment',
                             name='frequency',
@@ -156,7 +155,7 @@ def interpolation(request):
                               name='min-samples',
                               options=[("1 Sample", 1), ("2 Samples", 2), ("5 Samples", 5), ("10 Samples", 10),
                                        ("15 Samples", 15), ("20 Samples", 20), ("25 Samples", 25), ("50 Samples", 50)],
-                              initial="5 Samples"
+                              initial="10 Samples"
                               )
     seasonal = SelectInput(display_text='Annual Sampling Time',
                            name='seasonal',
@@ -168,12 +167,30 @@ def interpolation(request):
                                     ("Use All Data", 999)],
                            initial="Use All Data"
                            )
+
+    gap_size = TextInput(display_text='Enter GAP Size',
+                         name='gap-size-input',
+                         initial='365 days',
+                         )
+
+    pad = TextInput(display_text='Enter Pad Value',
+                    name='pad-input',
+                    initial='90',
+                    )
+
+    spacing = TextInput(display_text='Enter Spacing',
+                        name='spacing-input',
+                        initial='1MS',
+                        )
+    # 'gap_size': '365 days',
+    # 'pad': '90',
+    # 'spacing': '1MS'
     add_button = Button(display_text='Submit',
                         icon='glyphicon glyphicon-plus',
                         style='primary',
                         name='submit',
                         attributes={'id': 'submit'},
-                        href=reverse('gwlm:run-dask', kwargs={'job_type': 'delayed'}),
+                        # href=reverse('gwlm:run-dask', kwargs={'job_type': 'delayed'}),
                         classes="add")
 
     context = {
@@ -195,6 +212,9 @@ def interpolation(request):
         'time_tolerance': time_tolerance,
         'min_samples': min_samples,
         'seasonal': seasonal,
+        'gap_size': gap_size,
+        'pad': pad,
+        'spacing': spacing,
         'add_button': add_button
     }
     return render(request, 'gwlm/interpolation.html', context)

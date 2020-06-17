@@ -67,7 +67,7 @@ def get_aquifer_select(region_id, aquifer_id=False):
     return aquifer_select
 
 
-def get_variable_select():
+def get_variable_list():
     session = get_session_obj()
     variables = session.query(Variable).all()
 
@@ -76,39 +76,59 @@ def get_variable_select():
         variable_list.append((f'{variable.name}, {variable.units}', variable.id))
 
     session.close()
+    return variable_list
+
+
+def get_variable_select():
+    variable_list = get_variable_list()
+
     variable_select = SelectInput(display_text='Select Variable',
                                   name='variable-select',
-                                  options=variable_list,
-                                  attributes={'id': 'variable-select'},
-                                  classes='variable-select')
+                                  options=variable_list,)
     return variable_select
 
 
-def get_region_variable_select(region_id):
-    session = get_session_obj()
-    variables = (session.query(Variable)
-                 .join(Measurement, Measurement.variable_id == Variable.id)
-                 .join(Well, Measurement.well_id == Well.id)
-                 .join(Aquifer, Well.aquifer_id == Aquifer.id)
-                 .filter(Aquifer.region_id == int(region_id))
-                 # .join(Aquifer, Region.id == Aquifer.region_id)
-                 # .join(Measurement, Well.id == Measurement.well_id)
-                 # .filter(Aquifer.region_id == int(region_id))
-                 .distinct()
-                 )
-
+def get_region_variables_list(region_id):
     variable_list = []
-    for variable in variables:
-        variable_list.append((f'{variable.name}, {variable.units}', variable.id))
+    if region_id is not None:
+        session = get_session_obj()
+        variables = (session.query(Variable)
+                     .join(Measurement, Measurement.variable_id == Variable.id)
+                     .join(Well, Measurement.well_id == Well.id)
+                     .join(Aquifer, Well.aquifer_id == Aquifer.id)
+                     .filter(Aquifer.region_id == int(region_id))
+                     # .join(Aquifer, Region.id == Aquifer.region_id)
+                     # .join(Measurement, Well.id == Measurement.well_id)
+                     # .filter(Aquifer.region_id == int(region_id))
+                     .distinct()
+                     )
 
+
+        for variable in variables:
+            variable_list.append((f'{variable.name}, {variable.units}', variable.id))
+
+        session.close()
+
+    return variable_list
+
+
+def get_region_aquifers_list(region_id):
+    session = get_session_obj()
+    aquifers = session.query(Aquifer).filter(Aquifer.region_id == region_id)
+    aquifers_list = [[aquifer.aquifer_name, aquifer.id] for aquifer in aquifers]
+    session.close()
+    return aquifers_list
+
+
+def get_region_variable_select(region_id):
+    variable_list = get_region_variables_list(region_id)
     variable_select = SelectInput(display_text='Select Variable',
                                   name='variable-select',
                                   options=variable_list,
                                   attributes={'id': 'variable-select'},
                                   classes='variable-select')
 
-    session.close()
-    return  variable_select
+    return variable_select
 
 
 def process_region_shapefile(shapefile, region_name, app_workspace):
