@@ -19,6 +19,7 @@ from sqlalchemy.sql import func
 import time
 from datetime import datetime
 import calendar
+from thredds_crawler.crawl import Crawl
 
 
 def user_permission_test(user):
@@ -492,10 +493,15 @@ def create_outlier(well_id):
     return set_value
 
 
-def get_wms_datasets(aquifer_id):
+def get_wms_datasets(aquifer_name):
     catalog = app.get_spatial_dataset_service('primary_thredds', as_engine=True)
-    print(catalog.catalog_refs)
-    print(catalog.catalog_url, catalog.base_tds_url)
+    # print(catalog.catalog_refs)
+    # print(catalog.catalog_url, catalog.base_tds_url)
+    c = Crawl(catalog.catalog_url)
+    # print(c.datasets)
+    urls = [[s.get("url"), d.name] for d in c.datasets for s in d.services
+            if s.get("service").lower() == "wms" and aquifer_name in s.get("url")]
+    print(urls)
     # print(catalog.get_latest_access_url)
 
-    return None
+    return urls

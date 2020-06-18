@@ -47,12 +47,17 @@ def region_map(request):
     thredds_text_input = thredds_text_gizmo()
     variable_select = get_region_variable_select(region_id=region_id)
     # variable_select = get_variable_select()
+    select_interpolation = SelectInput(display_text='Interpolation Layer',
+                                       name='select-interpolation',
+                                       options=[],
+                                       multiple=False)
 
     context = {
         'aquifer_select': aquifer_select,
         'variable_select': variable_select,
         'geoserver_text_input': geoserver_text_input,
-        'thredds_text_input': thredds_text_input
+        'thredds_text_input': thredds_text_input,
+        'select_interpolation': select_interpolation
     }
 
     return render(request, 'gwlm/region_map.html', context)

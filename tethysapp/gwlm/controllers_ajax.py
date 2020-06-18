@@ -656,8 +656,8 @@ def region_wms_datasets(request):
         # get/check information from AJAX request
         post_info = request.POST
         aquifer_name = post_info.get('aquifer_name')
-        print(aquifer_name)
         well_files = get_wms_datasets(aquifer_name)
         response['success'] = 'success'
+        response['wms_files'] = well_files
 
     return JsonResponse(response)

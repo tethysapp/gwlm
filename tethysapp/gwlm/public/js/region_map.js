@@ -30,14 +30,17 @@ var LIBRARY_OBJECT = (function() {
         rangeMax,
         slidervar,
         $threddsUrl,
+        tdWmsLayer,
         wfs_response,
+        wmsLayer,
         well_obs;
 
     /************************************************************************
      *                    PRIVATE FUNCTION DECLARATIONS
      *************************************************************************/
 
-    var get_ts,
+    var add_wms,
+        get_ts,
         generate_chart,
         get_well_obs,
         get_wms_datasets,
@@ -103,49 +106,42 @@ var LIBRARY_OBJECT = (function() {
                 '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
 
-        // var timeDimension = new L.TimeDimension();
-        // map.timeDimension = timeDimension;
-        //
-        // var player        = new L.TimeDimension.Player({
-        //     loop: true,
-        //     startOver:true
-        // }, timeDimension);
-        //
-        // var timeDimensionControlOptions = {
-        //     player:        player,
-        //     timeDimension: timeDimension,
-        //     position:      'bottomleft',
-        //     autoPlay:      false,
-        //     minSpeed:      1,
-        //     speedStep:     0.5,
-        //     maxSpeed:      20,
-        //     timeSliderDragUpdate: true,a
-        //     loopButton:true,
-        //     limitSliders:true
-        // };
+        var timeDimension = new L.TimeDimension();
+        map.timeDimension = timeDimension;
 
-        // var timeDimensionControl = new L.Control.TimeDimension(timeDimensionControlOptions);
-        // map.addControl(timeDimensionControl);
+        var player  = new L.TimeDimension.Player({
+            loop: true,
+            startOver:true
+        }, timeDimension);
+
+        var timeDimensionControlOptions = {
+            player:        player,
+            timeDimension: timeDimension,
+            position:      'bottomleft',
+            autoPlay:      false,
+            minSpeed:      1,
+            speedStep:     0.5,
+            maxSpeed:      20,
+            timeSliderDragUpdate: true,
+            loopButton:true,
+            limitSliders:true
+        };
+
+        var timeDimensionControl = new L.Control.TimeDimension(timeDimensionControlOptions);
+        map.addControl(timeDimensionControl);
         //
-        // var wmsUrl = "http://127.0.0.1:8383/thredds/wms/testAll/groundwater/clipped_well.nc";
+        var wmsUrl = "http://127.0.0.1:8383/thredds/wms/testAll/groundwater/clipped_well.nc";
         //
-        // var wmsLayer = L.tileLayer.wms(wmsUrl, {
-        //     layers: 'tsvalue',
-        //     format: 'image/png',
-        //     transparent: true,
-        //     styles: 'boxfill/rainbow',
-        //     colorscalerange: [-700, 900],
-        //     version:'1.3.0'
-        // });
-        //
-        //
-        // var tdWmsLayer = L.timeDimension.layer.wms(wmsLayer,{
-        //     updateTimeDimension:true,
-        //     setDefaultTime:true,
-        //     cache:48
-        // });
-        // tdWmsLayer.addTo(map);
-        //
+        wmsLayer = L.tileLayer.wms(wmsUrl, {
+            version:'1.3.0'
+        });
+        tdWmsLayer = L.timeDimension.layer.wms(wmsLayer,{
+            updateTimeDimension:true,
+            setDefaultTime:true,
+            cache:48
+        });
+        tdWmsLayer.addTo(map);
+
         aquiferGroup = L.featureGroup().addTo(map);
         markers = L.markerClusterGroup(    {iconCreateFunction: function (cluster) {
                 // get the number of items in the cluster
@@ -184,13 +180,6 @@ var LIBRARY_OBJECT = (function() {
 
         layer_control = L.control.layers(null, overlay_maps).addTo(map);
 
-        // L.control.opacity(
-        //     overlay_maps,
-        //     {
-        //         label: 'Opacity',
-        //         collapsed: true
-        //     }
-        // ).addTo(map);
         var min_input = L.control({position: 'topright'});
         min_input.onAdd = function(map){
             var div = L.DomUtil.create('div', 'min_input');
@@ -233,16 +222,6 @@ var LIBRARY_OBJECT = (function() {
         };
         opacity_input.addTo(map);
 
-
-
-
-        // style   :
-        //     {
-        //         position: 'absolute',
-        //         left: '50px',
-        //         top: '0px',
-        //         width: '200px',
-        //     },
     };
 
 
@@ -448,6 +427,14 @@ var LIBRARY_OBJECT = (function() {
         xhr.done(function(return_data) {
             if ("success" in return_data) {
                 console.log(return_data);
+                $("#select-interpolation").html('');
+                var empty_opt = '<option value="" selected disabled>Select item...</option>';
+                $("#select-interpolation").append(empty_opt);
+                var wms_options = return_data['wms_files'];
+                wms_options.forEach(function(attr,i){
+                    var wms_option = new Option(attr[1], attr[0]);
+                    $("#select-interpolation").append(wms_option);
+                });
             }
         });
     };
@@ -484,6 +471,26 @@ var LIBRARY_OBJECT = (function() {
                 console.log('err');
             }
         });
+    };
+
+    add_wms = function(wmsUrl){
+        map.removeLayer(tdWmsLayer);
+
+        wmsLayer = L.tileLayer.wms(wmsUrl, {
+            layers: 'tsvalue',
+            format: 'image/png',
+            transparent: true,
+            styles: 'boxfill/rainbow',
+            colorscalerange: [-700, 900],
+            version:'1.3.0'
+        });
+
+        tdWmsLayer = L.timeDimension.layer.wms(wmsLayer,{
+            updateTimeDimension:true,
+            setDefaultTime:true,
+            cache:48
+        });
+        tdWmsLayer.addTo(map);
     };
 
     init_dropdown = function () {
@@ -546,6 +553,16 @@ var LIBRARY_OBJECT = (function() {
             var variable_id = $("#variable-select option:selected").val();
             get_well_obs(aquifer_id, variable_id);
             original_map_chart();
+        });
+
+        $("#select-interpolation").change(function(){
+            var wms_endpoint = $("#select-interpolation option:selected").val();
+            add_wms(wms_endpoint);
+        });
+
+        $("#select_symbology").change(function(){
+           var symbology = $("#select_symbology option:selected").val();
+           wmsLayer.setParams({styles: 'boxfill/'+symbology});
         });
 
         slidervar.noUiSlider.on('update', function( values, handle ) {

@@ -428,7 +428,7 @@ def extract_query_objects(region_id, aquifer_id, variable):
 
     session = get_session_obj()
     aquifer_obj = session.query(gf2.ST_AsText(Aquifer.geometry), Aquifer.aquifer_name).filter(Aquifer.region_id == region_id,
-                                                                        Aquifer.id == aquifer_id).first()
+                                                                                              Aquifer.id == aquifer_id).first()
     bbox = wkt.loads(aquifer_obj[0]).bounds
     print(bbox)
     wells_query = session.query(Well).filter(Well.aquifer_id == aquifer_id)

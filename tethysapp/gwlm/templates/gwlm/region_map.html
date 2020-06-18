@@ -46,6 +46,7 @@
 <li class="{% if request.path == home_url %}active{% endif %}"><a href="{{home_url}}">Go Home</a></li>
 {% gizmo aquifer_select %}
 {% gizmo variable_select %}
+{% gizmo select_interpolation %}
 <div>
   <input type="checkbox" id="cluster-toggle" name="cluster-toggle" checked>
   <label for="cluster-toggle">Toggle Clustering</label>
