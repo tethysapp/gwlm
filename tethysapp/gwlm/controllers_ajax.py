@@ -15,6 +15,7 @@ from .utils import (create_outlier,
                     get_well_obs,
                     get_well_info,
                     get_wms_datasets,
+                    get_wms_metadata,
                     get_region_aquifers_list,
                     get_region_variables_list,
                     process_wells_file,
@@ -656,8 +657,28 @@ def region_wms_datasets(request):
         # get/check information from AJAX request
         post_info = request.POST
         aquifer_name = post_info.get('aquifer_name')
-        well_files = get_wms_datasets(aquifer_name)
+        variable_id = post_info.get('variable_id')
+        region_id = post_info.get('region_id')
+        well_files = get_wms_datasets(aquifer_name, variable_id, region_id)
         response['success'] = 'success'
         response['wms_files'] = well_files
+
+    return JsonResponse(response)
+
+
+def region_wms_metadata(request):
+
+    response = {}
+    if request.is_ajax() and request.method == 'POST':
+        # get/check information from AJAX request
+        post_info = request.POST
+        aquifer_name = post_info.get('aquifer_name')
+        file_name = post_info.get('file_name')
+        region_id = post_info.get('region')
+        range_min, range_max = get_wms_metadata(aquifer_name, file_name, region_id)
+        response['success'] = 'success'
+        response['range_min'] = range_min
+        response['range_max'] = range_max
+        # response['wms_files'] = well_files
 
     return JsonResponse(response)

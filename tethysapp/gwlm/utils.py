@@ -20,6 +20,7 @@ import time
 from datetime import datetime
 import calendar
 from thredds_crawler.crawl import Crawl
+import xarray as xr
 
 
 def user_permission_test(user):
@@ -493,15 +494,27 @@ def create_outlier(well_id):
     return set_value
 
 
-def get_wms_datasets(aquifer_name):
+def get_wms_datasets(aquifer_name, variable_id, region_id):
     catalog = app.get_spatial_dataset_service('primary_thredds', as_engine=True)
     # print(catalog.catalog_refs)
     # print(catalog.catalog_url, catalog.base_tds_url)
     c = Crawl(catalog.catalog_url)
     # print(c.datasets)
+    file_str = f'{region_id}/{aquifer_name}/{aquifer_name}_{variable_id}'
     urls = [[s.get("url"), d.name] for d in c.datasets for s in d.services
-            if s.get("service").lower() == "wms" and aquifer_name in s.get("url")]
+            if s.get("service").lower() == "wms" and file_str in s.get("url")]
     print(urls)
     # print(catalog.get_latest_access_url)
 
     return urls
+
+
+def get_wms_metadata(aquifer_name, file_name, region_id):
+    thredds_directory = app.get_custom_setting('gw_thredds_directoy')
+    # aquifer_dir = os.path.join(thredds_directory, str(region_id), str(aquifer_obj[1]))
+    file_path = os.path.join(thredds_directory, str(region_id), aquifer_name, file_name)
+    print(file_path)
+    ds = xr.open_dataset(file_path)
+    range_min = int(ds.tsvalue.min().values)
+    range_max = int(ds.tsvalue.max().values)
+    return range_min, range_max

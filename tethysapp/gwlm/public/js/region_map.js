@@ -33,6 +33,7 @@ var LIBRARY_OBJECT = (function() {
         tdWmsLayer,
         wfs_response,
         wmsLayer,
+        wms_legend,
         well_obs;
 
     /************************************************************************
@@ -44,6 +45,7 @@ var LIBRARY_OBJECT = (function() {
         generate_chart,
         get_well_obs,
         get_wms_datasets,
+        get_wms_metadata,
         init_all,
         init_events,
         init_jquery_vars,
@@ -106,6 +108,18 @@ var LIBRARY_OBJECT = (function() {
                 '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
 
+        wms_legend = L.control({
+            position: 'bottomright'
+        });
+
+        wms_legend.onAdd = function(map) {
+            // var src = "?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetLegendGraphic&LAYER=significant_wave_height&colorscalerange=0,3&PALETTE=scb_bugnylorrd&numcolorbands=100&transparent=TRUE";
+            var legend_div = L.DomUtil.create('div', 'info legend');
+            legend_div.innerHTML +=
+                '<img src="" name="legend-image" id="legend-image" alt="Legend">';
+            return legend_div;
+        };
+        wms_legend.addTo(map);
         var timeDimension = new L.TimeDimension();
         map.timeDimension = timeDimension;
 
@@ -183,7 +197,7 @@ var LIBRARY_OBJECT = (function() {
         var min_input = L.control({position: 'topright'});
         min_input.onAdd = function(map){
             var div = L.DomUtil.create('div', 'min_input');
-            div.innerHTML = '<b>Min:</b><input type="number" class="form-control input-sm" name="leg_min" id="col_min" min="-5000" max="5000" step="10" value="-500">';
+            div.innerHTML = '<b>Min:</b><input type="number" class="form-control input-sm" name="leg_min" id="leg_min" min="-5000" max="5000" step="10" value="-500">';
             return div;
         };
         min_input.addTo(map);
@@ -191,7 +205,7 @@ var LIBRARY_OBJECT = (function() {
         var max_input = L.control({position: 'topright'});
         max_input.onAdd = function(map){
             var div = L.DomUtil.create('div', 'max_input');
-            div.innerHTML = '<b>Max:</b><input type="number" class="form-control input-sm" name="leg_max" id="col_max" ' +
+            div.innerHTML = '<b>Max:</b><input type="number" class="form-control input-sm" name="leg_max" id="leg_max" ' +
                 'min="-5000" max="5000" step="10" value="0">';
             return div;
         };
@@ -421,8 +435,8 @@ var LIBRARY_OBJECT = (function() {
         });
     };
 
-    get_wms_datasets = function(aquifer_name){
-        var data = {"aquifer_name": aquifer_name};
+    get_wms_datasets = function(aquifer_name, variable_id, region_id){
+        var data = {"aquifer_name": aquifer_name, "variable_id": variable_id, "region_id": region_id};
         var xhr = ajax_update_database("get-wms-datasets", data);
         xhr.done(function(return_data) {
             if ("success" in return_data) {
@@ -473,15 +487,30 @@ var LIBRARY_OBJECT = (function() {
         });
     };
 
-    add_wms = function(wmsUrl){
+    get_wms_metadata = function(region, aquifer_name, file_name, wms_endpoint){
+        var data = {"region": region, "aquifer_name": aquifer_name, "file_name": file_name};
+        var xhr = ajax_update_database("get-wms-metadata", data);
+        xhr.done(function(return_data){
+            if("success" in return_data) {
+                console.log(return_data);
+                var range_min = return_data['range_min'];
+                var range_max = return_data['range_max'];
+                $("#leg_min").val(range_min);
+                $("#leg_max").val(range_max);
+                add_wms(wms_endpoint, range_min, range_max, 'rainbow');
+            }
+        })
+    };
+
+    add_wms = function(wmsUrl, range_min, range_max, style){
         map.removeLayer(tdWmsLayer);
 
         wmsLayer = L.tileLayer.wms(wmsUrl, {
             layers: 'tsvalue',
             format: 'image/png',
             transparent: true,
-            styles: 'boxfill/rainbow',
-            colorscalerange: [-700, 900],
+            styles: 'boxfill/'+style,
+            colorscalerange: [range_min, range_max],
             version:'1.3.0'
         });
 
@@ -491,6 +520,9 @@ var LIBRARY_OBJECT = (function() {
             cache:48
         });
         tdWmsLayer.addTo(map);
+        var src = wmsUrl + "?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=tsvalue"+
+            "&colorscalerange="+range_min+","+range_max+"&PALETTE=boxfill/"+style+"&transparent=TRUE";
+        $("#legend-image").attr("src", src);
     };
 
     init_dropdown = function () {
@@ -542,10 +574,11 @@ var LIBRARY_OBJECT = (function() {
             var aquifer_id = $("#aquifer-select option:selected").val();
             var variable_id = $("#variable-select option:selected").val();
             var aquifer_name = $("#aquifer-select option:selected").text();
+            var region = $("#region-text-input").val();
             view_aquifer(aquifer_id);
             get_well_obs(aquifer_id, variable_id);
             original_map_chart();
-            get_wms_datasets(aquifer_name);
+            get_wms_datasets(aquifer_name, variable_id, region);
         }).change();
 
         $("#variable-select").change(function(){
@@ -557,12 +590,15 @@ var LIBRARY_OBJECT = (function() {
 
         $("#select-interpolation").change(function(){
             var wms_endpoint = $("#select-interpolation option:selected").val();
-            add_wms(wms_endpoint);
+            var file_name = $("#select-interpolation option:selected").text();
+            var aquifer_name = $("#aquifer-select option:selected").text();
+            var region = $("#region-text-input").val();
+            get_wms_metadata(region, aquifer_name, file_name, wms_endpoint);
         });
 
         $("#select_symbology").change(function(){
-           var symbology = $("#select_symbology option:selected").val();
-           wmsLayer.setParams({styles: 'boxfill/'+symbology});
+            var symbology = $("#select_symbology option:selected").val();
+            wmsLayer.setParams({styles: 'boxfill/'+symbology});
         });
 
         slidervar.noUiSlider.on('update', function( values, handle ) {

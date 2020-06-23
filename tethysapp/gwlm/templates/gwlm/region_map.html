@@ -59,10 +59,10 @@
     <input type="number" min='1' max='3000' id="input-number-min" readonly>
     <input type="number" min='2' max='3000' id="input-number-max" readonly>
 </div>
+<div class="hidden">{% gizmo geoserver_text_input %} {% gizmo thredds_text_input %} {% gizmo region_text_input %}</div>
 {% endblock %}
 
 {% block app_content %}
-<div class="hidden">{% gizmo geoserver_text_input %} {% gizmo thredds_text_input %}</div>
 <div id="map" class="full-map"></div>
 <div id="chart" class="full-chart"></div>
 {% endblock %}

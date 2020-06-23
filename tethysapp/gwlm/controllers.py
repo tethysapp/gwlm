@@ -52,12 +52,19 @@ def region_map(request):
                                        options=[],
                                        multiple=False)
 
+    region_text_input = TextInput(display_text='Region',
+                                  name='region-text-input',
+                                  placeholder=region_id,
+                                  attributes={'value': region_id},
+                                  classes="hidden")
+
     context = {
         'aquifer_select': aquifer_select,
         'variable_select': variable_select,
         'geoserver_text_input': geoserver_text_input,
         'thredds_text_input': thredds_text_input,
-        'select_interpolation': select_interpolation
+        'select_interpolation': select_interpolation,
+        'region_text_input': region_text_input
     }
 
     return render(request, 'gwlm/region_map.html', context)

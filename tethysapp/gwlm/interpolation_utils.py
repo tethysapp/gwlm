@@ -518,9 +518,9 @@ def generate_nc_file(file_name, grid_x, grid_y, years_df, coords_df, x_coords, y
     return Path(file_path)
 
 
-def clip_nc_file(file_path, aquifer_obj):
+def clip_nc_file(file_path, aquifer_obj, region_id):
     thredds_directory = app.get_custom_setting('gw_thredds_directoy')
-    aquifer_dir = os.path.join(thredds_directory, aquifer_obj[1])
+    aquifer_dir = os.path.join(thredds_directory, str(region_id), str(aquifer_obj[1]))
     if not os.path.exists(aquifer_dir):
         os.makedirs(aquifer_dir)
 
@@ -594,11 +594,11 @@ def mlr_interpolation(mlr_dict):
     skip_month = 48  # take data every nth month (skip_months), e.g., 60 = every 5 years
     years_df = imputed_df.iloc[::skip_month].T  # extract every nth month of data and transpose array
     print(len(years_df))
-    file_name = f'{aquifer_obj[1]}_{time.time()}.nc'
+    file_name = f'{aquifer_obj[1]}_{variable}_{time.time()}.nc'
     # setup a netcdf file to store the time series of rasters
     #
     nc_file_path = generate_nc_file(file_name, grid_x, grid_y, years_df, coords_df, x_coords, y_coords)
-    final_nc_path = clip_nc_file(nc_file_path, aquifer_obj)
+    final_nc_path = clip_nc_file(nc_file_path, aquifer_obj, region_id)
     return final_nc_path
 
 
