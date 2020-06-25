@@ -17,6 +17,8 @@ var LIBRARY_OBJECT = (function() {
      *                      MODULE LEVEL / GLOBAL VARIABLES
      *************************************************************************/
     var aquiferGroup,
+        contourLayer,
+        contourTimeLayer,
         $geoserverUrl,
         layer_control,
         map,
@@ -157,6 +159,18 @@ var LIBRARY_OBJECT = (function() {
         tdWmsLayer.addTo(map);
         map.removeLayer(tdWmsLayer);
 
+
+        contourLayer = L.tileLayer.wms(wmsUrl,{
+            version:'1.3.0'
+        });
+        contourTimeLayer = L.timeDimension.layer.wms(contourLayer,{
+            updateTimeDimension:true,
+            setDefaultTime:true,
+            cache:48
+        });
+        contourTimeLayer.addTo(map);
+        map.removeLayer(contourTimeLayer);
+
         aquiferGroup = L.featureGroup().addTo(map);
         markers = L.markerClusterGroup(    {iconCreateFunction: function (cluster) {
                 // get the number of items in the cluster
@@ -190,7 +204,9 @@ var LIBRARY_OBJECT = (function() {
 
         overlay_maps = {
             "Aquifer Boundary": aquiferGroup,
-            "Wells": markers
+            "Wells": markers,
+            "Interpolation Layer": tdWmsLayer,
+            "Contours": contourTimeLayer
         };
 
         layer_control = L.control.layers(null, overlay_maps).addTo(map);
@@ -441,6 +457,7 @@ var LIBRARY_OBJECT = (function() {
         var xhr = ajax_update_database("get-wms-datasets", data);
         xhr.done(function(return_data) {
             if ("success" in return_data) {
+                console.log(return_data);
                 $("#select-interpolation").html('');
                 // $("#select-interpolation").prop("selected", false);
                 var empty_opt = '<option value="" selected disabled>Select item...</option>';
@@ -504,6 +521,24 @@ var LIBRARY_OBJECT = (function() {
 
     add_wms = function(wmsUrl, range_min, range_max, style){
         map.removeLayer(tdWmsLayer);
+        map.removeLayer(contourTimeLayer);
+
+        contourLayer = L.tileLayer.wms(wmsUrl, {
+            layers: 'tsvalue',
+            format: 'image/png',
+            transparent: true,
+            styles: 'contour/'+style,
+            crs: L.CRS.EPSG4326,
+            opacity: '1.0',
+            colorscalerange: [range_min, range_max],
+            version:'1.3.0'
+        });
+
+        contourTimeLayer = L.timeDimension.layer.wms(contourLayer,{
+            updateTimeDimension:true,
+            setDefaultTime:true,
+            cache:48
+        });
 
         wmsLayer = L.tileLayer.wms(wmsUrl, {
             layers: 'tsvalue',
@@ -521,6 +556,9 @@ var LIBRARY_OBJECT = (function() {
             cache:48
         });
         tdWmsLayer.addTo(map);
+        contourTimeLayer.addTo(map);
+        contourTimeLayer.bringToFront();
+
         var src = wmsUrl + "?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=tsvalue"+
             "&colorscalerange="+range_min+","+range_max+"&PALETTE=boxfill/"+style+"&transparent=TRUE";
         $("#legend-image").attr("src", src);
@@ -582,6 +620,7 @@ var LIBRARY_OBJECT = (function() {
             get_wms_datasets(aquifer_name, variable_id, region);
             $("#legend-image").attr("src", '');
             map.removeLayer(tdWmsLayer);
+            map.removeLayer(contourTimeLayer);
         }).change();
 
         $("#variable-select").change(function(){
@@ -594,6 +633,7 @@ var LIBRARY_OBJECT = (function() {
             get_wms_datasets(aquifer_name, variable_id, region);
             $("#legend-image").attr("src", '');
             map.removeLayer(tdWmsLayer);
+            map.removeLayer(contourTimeLayer);
         });
 
         $("#select-interpolation").change(function(){
@@ -619,8 +659,8 @@ var LIBRARY_OBJECT = (function() {
         });
 
         $("#opacity_val").change(function(){
-           var opacity = $("#opacity_val").val();
-           tdWmsLayer.setOpacity(opacity);
+            var opacity = $("#opacity_val").val();
+            tdWmsLayer.setOpacity(opacity);
         });
 
 

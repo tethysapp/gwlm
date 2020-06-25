@@ -498,6 +498,7 @@ def get_wms_datasets(aquifer_name, variable_id, region_id):
     catalog = app.get_spatial_dataset_service('primary_thredds', as_engine=True)
     # print(catalog.catalog_refs)
     # print(catalog.catalog_url, catalog.base_tds_url)
+    aquifer_name = aquifer_name.replace(" ", "_")
     c = Crawl(catalog.catalog_url)
     # print(c.datasets)
     file_str = f'{region_id}/{aquifer_name}/{aquifer_name}_{variable_id}'
@@ -512,6 +513,7 @@ def get_wms_datasets(aquifer_name, variable_id, region_id):
 def get_wms_metadata(aquifer_name, file_name, region_id):
     thredds_directory = app.get_custom_setting('gw_thredds_directoy')
     # aquifer_dir = os.path.join(thredds_directory, str(region_id), str(aquifer_obj[1]))
+    aquifer_name = aquifer_name.replace(" ", "_")
     file_path = os.path.join(thredds_directory, str(region_id), aquifer_name, file_name)
     print(file_path)
     ds = xr.open_dataset(file_path)
