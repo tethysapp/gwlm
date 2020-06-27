@@ -147,31 +147,6 @@ var LIBRARY_OBJECT = (function() {
 
         var timeDimensionControl = new L.Control.TimeDimension(timeDimensionControlOptions);
         map.addControl(timeDimensionControl);
-        //
-        var wmsUrl = "http://127.0.0.1:8383/thredds/wms/testAll/groundwater/clipped_well.nc";
-        //
-        // wmsLayer = L.tileLayer.wms(wmsUrl, {
-        //     version:'1.3.0'
-        // });
-        // tdWmsLayer = L.timeDimension.layer.wms(wmsLayer,{
-        //     updateTimeDimension:true,
-        //     setDefaultTime:true,
-        //     cache:48
-        // });
-        // tdWmsLayer.addTo(map);
-        // map.removeLayer(tdWmsLayer);
-
-
-        // contourLayer = L.tileLayer.wms(wmsUrl,{
-        //     version:'1.3.0'
-        // });
-        // contourTimeLayer = L.timeDimension.layer.wms(contourLayer,{
-        //     updateTimeDimension:true,
-        //     setDefaultTime:true,
-        //     cache:48
-        // });
-        // contourTimeLayer.addTo(map);
-        // map.removeLayer(contourTimeLayer);
 
         aquiferGroup = L.featureGroup().addTo(map);
         interpolationGroup = L.layerGroup().addTo(map);

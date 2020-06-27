@@ -150,8 +150,7 @@ var LIBRARY_OBJECT = (function() {
         var aquifer_id = $("#aquifer-select option:selected").val();
         var aquifer_col = $("#aquifer_attributes option:selected").val();
         var region_id = $("#region-select option:selected").val();
-        console.log(aquifer_id);
-        console.log(aquifer_col);
+
         var data = new FormData();
         for(var i=0;i < shapefiles.length;i++){
             data.append("shapefile",shapefiles[i]);
@@ -212,6 +211,7 @@ var LIBRARY_OBJECT = (function() {
     // the DOM tree finishes loading
     $(function() {
         init_all();
+        window.onbeforeunload = null;
         $("#region-select").change(function(){
             var region = $("#region-select option:selected").val();
             var xhr = ajax_update_database("get-aquifers", {'id': region}); //Submitting the data through the ajax function, see main.js for the helper function.

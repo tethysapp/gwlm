@@ -44,6 +44,11 @@ var LIBRARY_OBJECT = (function() {
             $("#shp-upload-input").val('');
             $(".attributes").addClass('hidden');
             $(".add").addClass('hidden');
+            $("#id_attributes").val('');
+            $("#time_attributes").val('');
+            $("#value_attributes").val('');
+            $("#format-text-input").val('');
+            $("#aquifer_attributes").val('');
             reset_dropdown();
             addSuccessMessage('measurements Upload Complete!');
         }
@@ -59,7 +64,6 @@ var LIBRARY_OBJECT = (function() {
         $("#time_attributes").html('');
         $("#value_attributes").html('');
         $("#aquifer_attributes").html('');
-
     };
 
     init_dropdown = function () {
@@ -202,6 +206,7 @@ var LIBRARY_OBJECT = (function() {
     // the DOM tree finishes loading
     $(function() {
         init_all();
+        window.onbeforeunload = null;
         $("#region-select").change(function(){
             var region = $("#region-select option:selected").val();
             var xhr = ajax_update_database("get-aquifers", {'id': region}); //Submitting the data through the ajax function, see main.js for the helper function.
