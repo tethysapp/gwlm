@@ -561,21 +561,25 @@ def mlr_interpolation(mlr_dict):
     gldas_df = pd.concat([pdsi_df, soilw_df], join="outer", axis=1)
     gldas_df = sat_resample(gldas_df)
     gldas_df, names = sat_rolling_window(YEARS, gldas_df)
+    print('gldas', gldas_df)
 
     wells_df = pd.concat([extract_well_data(name, group,  start_date, end_date, min_samples)
                           for name, group in measurements_df.groupby('well_id')], axis=1, sort=False)
+    print('wells_df', wells_df)
     wells_df.drop_duplicates(inplace=True)
     well_names = wells_df.columns
     # wells_df.to_csv('wells_df.csv')
     well_interp_df = interp_well(wells_df, gap_size, pad, spacing)
+    print('well_interp_df', well_interp_df)
     # well_interp_df.to_csv('well_interp.csv')
     # combine the  data from the wells and the satellite observations  to a single dataframe (combined_df)
     # this will have a row for every measurement (on the start of the month) a column for each well,
     # and a column for pdsi and soilw and their rolling averages, and potentially offsets
     combined_df = pd.concat([well_interp_df, gldas_df], join="outer", axis=1, sort=False)
     combined_df.dropna(subset=names, inplace=True)  # drop rows where there are no satellite data
-
+    print('combined_df', combined_df)
     norm_df = norm_training_data(combined_df, combined_df)
+    print('norm_df', norm_df)
     imputed_norm_df = impute_data(norm_df, well_names, names)
     ref_df = combined_df[well_names]
     imputed_df = renorm_data(imputed_norm_df, ref_df)
@@ -661,7 +665,6 @@ def process_interpolation(info_dict):
     gap_size = info_dict['gap_size']
     pad = int(info_dict['pad'])
     spacing = info_dict['spacing']
-
 
     if temporal_interpolation == 'MLR':
         for aquifer in aquifer_list:

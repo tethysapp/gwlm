@@ -19,7 +19,9 @@ var LIBRARY_OBJECT = (function() {
     var aquiferGroup,
         contourLayer,
         contourTimeLayer,
+        contourGroup,
         $geoserverUrl,
+        interpolationGroup,
         layer_control,
         map,
         markers,
@@ -116,7 +118,7 @@ var LIBRARY_OBJECT = (function() {
 
         wms_legend.onAdd = function(map) {
             // var src = "?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetLegendGraphic&LAYER=significant_wave_height&colorscalerange=0,3&PALETTE=scb_bugnylorrd&numcolorbands=100&transparent=TRUE";
-            var legend_div = L.DomUtil.create('div', 'info legend');
+            var legend_div = L.DomUtil.create('div', 'info legend lcontrol hidden');
             legend_div.innerHTML +=
                 '<img src="" name="legend-image" id="legend-image" alt="Legend">';
             return legend_div;
@@ -148,49 +150,45 @@ var LIBRARY_OBJECT = (function() {
         //
         var wmsUrl = "http://127.0.0.1:8383/thredds/wms/testAll/groundwater/clipped_well.nc";
         //
-        wmsLayer = L.tileLayer.wms(wmsUrl, {
-            version:'1.3.0'
-        });
-        tdWmsLayer = L.timeDimension.layer.wms(wmsLayer,{
-            updateTimeDimension:true,
-            setDefaultTime:true,
-            cache:48
-        });
-        tdWmsLayer.addTo(map);
-        map.removeLayer(tdWmsLayer);
+        // wmsLayer = L.tileLayer.wms(wmsUrl, {
+        //     version:'1.3.0'
+        // });
+        // tdWmsLayer = L.timeDimension.layer.wms(wmsLayer,{
+        //     updateTimeDimension:true,
+        //     setDefaultTime:true,
+        //     cache:48
+        // });
+        // tdWmsLayer.addTo(map);
+        // map.removeLayer(tdWmsLayer);
 
 
-        contourLayer = L.tileLayer.wms(wmsUrl,{
-            version:'1.3.0'
-        });
-        contourTimeLayer = L.timeDimension.layer.wms(contourLayer,{
-            updateTimeDimension:true,
-            setDefaultTime:true,
-            cache:48
-        });
-        contourTimeLayer.addTo(map);
-        map.removeLayer(contourTimeLayer);
+        // contourLayer = L.tileLayer.wms(wmsUrl,{
+        //     version:'1.3.0'
+        // });
+        // contourTimeLayer = L.timeDimension.layer.wms(contourLayer,{
+        //     updateTimeDimension:true,
+        //     setDefaultTime:true,
+        //     cache:48
+        // });
+        // contourTimeLayer.addTo(map);
+        // map.removeLayer(contourTimeLayer);
 
         aquiferGroup = L.featureGroup().addTo(map);
+        interpolationGroup = L.layerGroup().addTo(map);
+        contourGroup = L.layerGroup().addTo(map);
+
         markers = L.markerClusterGroup(    {iconCreateFunction: function (cluster) {
                 // get the number of items in the cluster
                 var count = cluster.getChildCount();
-
                 // figure out how many digits long the number is
                 var digits = (count + '').length;
 
-                // Return a new L.DivIcon with our classes so we can
-                // style them with CSS. Take a look at the CSS in
-                // the <head> to see these styles. You have to set
-                // iconSize to null if you want to use CSS to set the
-                // width and height.
                 return L.divIcon({
                     html: count,
                     className: 'cluster digits-' + digits,
                     iconSize: null
                 });
             }}).addTo(map);
-
 
         $('#cluster-toggle').change(function() {
             // this will contain a reference to the checkbox
@@ -205,23 +203,23 @@ var LIBRARY_OBJECT = (function() {
         overlay_maps = {
             "Aquifer Boundary": aquiferGroup,
             "Wells": markers,
-            "Interpolation Layer": tdWmsLayer,
-            "Contours": contourTimeLayer
+            "Interpolation Layer": interpolationGroup,
+            "Contours": contourGroup
         };
 
         layer_control = L.control.layers(null, overlay_maps).addTo(map);
 
-        var min_input = L.control({position: 'topright'});
+        var min_input = L.control({position: 'topleft'});
         min_input.onAdd = function(map){
-            var div = L.DomUtil.create('div', 'min_input');
+            var div = L.DomUtil.create('div', 'min_input lcontrol hidden');
             div.innerHTML = '<b>Min:</b><input type="number" class="form-control input-sm" name="leg_min" id="leg_min" min="-5000" max="5000" step="10" value="-500" disabled>';
             return div;
         };
         min_input.addTo(map);
 
-        var max_input = L.control({position: 'topright'});
+        var max_input = L.control({position: 'topleft'});
         max_input.onAdd = function(map){
-            var div = L.DomUtil.create('div', 'max_input');
+            var div = L.DomUtil.create('div', 'max_input lcontrol hidden');
             div.innerHTML = '<b>Max:</b><input type="number" class="form-control input-sm" name="leg_max" id="leg_max" ' +
                 'min="-5000" max="5000" step="10" value="0" disabled>';
             return div;
@@ -230,7 +228,7 @@ var LIBRARY_OBJECT = (function() {
 
         var symbology_input = L.control({position: 'topright'});
         symbology_input.onAdd = function(map){
-            var div = L.DomUtil.create('div', 'symbology_input');
+            var div = L.DomUtil.create('div', 'symbology_input lcontrol hidden');
             div.innerHTML = '<select  id="select_symbology">'+
                 '<option value="" selected disabled>Select Symboloy</option>' +
                 '<option value="grace">GRACE</option>' +
@@ -246,7 +244,7 @@ var LIBRARY_OBJECT = (function() {
 
         var opacity_input = L.control({position: 'topright'});
         opacity_input.onAdd = function(map){
-            var div = L.DomUtil.create('div', 'opacity_input');
+            var div = L.DomUtil.create('div', 'opacity_input lcontrol hidden');
             div.innerHTML = '<b>Opacity:</b><input type="number" class="form-control input-sm" name="opacity" id="opacity_val" ' +
                 'min="0" max="1" step="0.1" value="1.0">';
             return div;
@@ -413,17 +411,6 @@ var LIBRARY_OBJECT = (function() {
     generate_chart = function(result){
         var variable_name = $("#variable-select option:selected").text();
         Highcharts.stockChart('chart',{
-
-            // chart: {
-            //     type:'spline',
-            //     zoomType: 'x'
-            // },
-            // tooltip: {
-            //     backgroundColor: '#FCFFC5',
-            //     borderColor: 'black',
-            //     borderRadius: 10,
-            //     borderWidth: 3
-            // },
             title: {
                 text: result['well_info']["well_name"]+ variable_name + " values",
                 style: {
@@ -457,7 +444,6 @@ var LIBRARY_OBJECT = (function() {
         var xhr = ajax_update_database("get-wms-datasets", data);
         xhr.done(function(return_data) {
             if ("success" in return_data) {
-                console.log(return_data);
                 $("#select-interpolation").html('');
                 // $("#select-interpolation").prop("selected", false);
                 var empty_opt = '<option value="" selected disabled>Select item...</option>';
@@ -520,8 +506,12 @@ var LIBRARY_OBJECT = (function() {
     };
 
     add_wms = function(wmsUrl, range_min, range_max, style){
-        map.removeLayer(tdWmsLayer);
-        map.removeLayer(contourTimeLayer);
+        // map.removeLayer(tdWmsLayer);
+        // map.removeLayer(contourTimeLayer);
+        $('.lcontrol').removeClass('hidden');
+        $('.leaflet-bar-timecontrol').removeClass('hidden');
+        interpolationGroup.clearLayers();
+        contourGroup.clearLayers();
 
         contourLayer = L.tileLayer.wms(wmsUrl, {
             layers: 'tsvalue',
@@ -531,7 +521,8 @@ var LIBRARY_OBJECT = (function() {
             crs: L.CRS.EPSG4326,
             opacity: '1.0',
             colorscalerange: [range_min, range_max],
-            version:'1.3.0'
+            version:'1.3.0',
+            zIndex: 10
         });
 
         contourTimeLayer = L.timeDimension.layer.wms(contourLayer,{
@@ -547,7 +538,8 @@ var LIBRARY_OBJECT = (function() {
             styles: 'boxfill/'+style,
             opacity: '1.0',
             colorscalerange: [range_min, range_max],
-            version:'1.3.0'
+            version:'1.3.0',
+            zIndex:5
         });
 
         tdWmsLayer = L.timeDimension.layer.wms(wmsLayer,{
@@ -555,8 +547,10 @@ var LIBRARY_OBJECT = (function() {
             setDefaultTime:true,
             cache:48
         });
-        tdWmsLayer.addTo(map);
-        contourTimeLayer.addTo(map);
+        // tdWmsLayer.addTo(map);
+        // contourTimeLayer.addTo(map);
+        interpolationGroup.addLayer(tdWmsLayer);
+        contourGroup.addLayer(contourTimeLayer);
         contourTimeLayer.bringToFront();
 
         var src = wmsUrl + "?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=tsvalue"+
@@ -619,12 +613,17 @@ var LIBRARY_OBJECT = (function() {
             original_map_chart();
             get_wms_datasets(aquifer_name, variable_id, region);
             $("#legend-image").attr("src", '');
-            map.removeLayer(tdWmsLayer);
-            map.removeLayer(contourTimeLayer);
+            interpolationGroup.clearLayers();
+            contourGroup.clearLayers();
+            $('.lcontrol').addClass('hidden');
+            $('.leaflet-bar-timecontrol').addClass('hidden');
+            // map.removeLayer(tdWmsLayer);
+            // map.removeLayer(contourTimeLayer);
         }).change();
 
         $("#variable-select").change(function(){
             var aquifer_id = $("#aquifer-select option:selected").val();
+            var aquifer_name = $("#aquifer-select option:selected").text();
             var variable_id = $("#variable-select option:selected").val();
             var region = $("#region-text-input").val();
 
@@ -632,8 +631,12 @@ var LIBRARY_OBJECT = (function() {
             original_map_chart();
             get_wms_datasets(aquifer_name, variable_id, region);
             $("#legend-image").attr("src", '');
-            map.removeLayer(tdWmsLayer);
-            map.removeLayer(contourTimeLayer);
+            $('.lcontrol').addClass('hidden');
+            $('.leaflet-bar-timecontrol').addClass('hidden');
+            // map.removeLayer(tdWmsLayer);
+            // map.removeLayer(contourTimeLayer);
+            interpolationGroup.clearLayers();
+            contourGroup.clearLayers();
         });
 
         $("#select-interpolation").change(function(){
@@ -649,10 +652,11 @@ var LIBRARY_OBJECT = (function() {
 
         $("#select_symbology").change(function(){
             var symbology = $("#select_symbology option:selected").val();
-            wmsLayer.setParams({styles: 'boxfill/'+symbology});
-            var wmsUrl = wmsLayer._url;
-            var range_min = wmsLayer.wmsParams.colorscalerange[0];
-            var range_max = wmsLayer.wmsParams.colorscalerange[1];
+            var current_wms_layer = interpolationGroup.getLayers()[0];
+            current_wms_layer.setParams({styles: 'boxfill/'+symbology});
+            var wmsUrl = current_wms_layer._baseLayer._url;
+            var range_min = current_wms_layer._baseLayer.wmsParams.colorscalerange[0];
+            var range_max = current_wms_layer._baseLayer.wmsParams.colorscalerange[1];
             var src = wmsUrl + "?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=tsvalue"+
                 "&colorscalerange="+range_min+","+range_max+"&PALETTE="+symbology+"&transparent=TRUE";
             $("#legend-image").attr("src", src);
