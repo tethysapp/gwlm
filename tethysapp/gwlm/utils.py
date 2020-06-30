@@ -21,6 +21,7 @@ from datetime import datetime
 import calendar
 from thredds_crawler.crawl import Crawl
 import xarray as xr
+import plotly.graph_objects as go
 
 
 def user_permission_test(user):
@@ -34,6 +35,15 @@ def get_session_obj():
 
 
 def get_region_select():
+    region_list = get_regions()
+    region_select = SelectInput(display_text='Select a Region',
+                                name='region-select',
+                                options=region_list,)
+
+    return region_select
+
+
+def get_regions():
     session = get_session_obj()
     regions = session.query(Region).all()
     region_list = []
@@ -42,11 +52,7 @@ def get_region_select():
         region_list.append(("%s" % region.region_name, region.id))
 
     session.close()
-    region_select = SelectInput(display_text='Select a Region',
-                                name='region-select',
-                                options=region_list,)
-
-    return region_select
+    return region_list
 
 
 def get_aquifer_select(region_id, aquifer_id=False):
@@ -105,7 +111,6 @@ def get_region_variables_list(region_id):
                      .distinct()
                      )
 
-
         for variable in variables:
             variable_list.append((f'{variable.name}, {variable.units}', variable.id))
 
@@ -114,12 +119,59 @@ def get_region_variables_list(region_id):
     return variable_list
 
 
+def get_metrics():
+    session = get_session_obj()
+    metrics_query = (session.query(Region.region_name, Variable.name.label('variable_name'),
+                                   func.count(Measurement.id).label('num_of_measurements'))
+                     .join(Measurement, Measurement.variable_id == Variable.id)
+                     .join(Well, Measurement.well_id == Well.id)
+                     .join(Aquifer, Well.aquifer_id == Aquifer.id)
+                     .join(Region, Region.id == Aquifer.region_id)
+                     .group_by(Region.region_name, Variable.name)
+                     )
+    metrics_df = pd.read_sql(metrics_query.statement, session.bind)
+    session.close()
+
+    fig = go.Figure(data=[go.Table(
+        header=dict(values=['Region Name', 'Variable Name', 'Number of Measurements'],
+                    fill_color='paleturquoise',
+                    align='left'),
+        cells=dict(values=[metrics_df.region_name, metrics_df.variable_name, metrics_df.num_of_measurements],
+                   fill_color='lavender',
+                   align='left'))
+    ])
+
+    return fig
+
+
 def get_region_aquifers_list(region_id):
     session = get_session_obj()
     aquifers = session.query(Aquifer).filter(Aquifer.region_id == region_id)
     aquifers_list = [[aquifer.aquifer_name, aquifer.id] for aquifer in aquifers]
     session.close()
     return aquifers_list
+
+
+def get_aquifers_list():
+    session = get_session_obj()
+    aquifers = session.query(Aquifer).all()
+    aquifers_list = [[aquifer.aquifer_name, aquifer.id] for aquifer in aquifers]
+    session.close()
+    return aquifers_list
+
+
+def get_num_wells():
+    session = get_session_obj()
+    wells = session.query(Well.id).distinct().count()
+    session.close()
+    return wells
+
+
+def get_num_measurements():
+    session = get_session_obj()
+    measurements = session.query(Measurement.id).distinct().count()
+    session.close()
+    return measurements
 
 
 def get_region_variable_select(region_id):
@@ -193,7 +245,6 @@ def process_aquifer_shapefile(shapefile,
         session.close()
         end_time = time.time()
         total_time = (end_time - start_time)
-        print(total_time)
 
         return {"success": "success"}
 
@@ -208,7 +259,6 @@ def process_aquifer_shapefile(shapefile,
         if temp_dir is not None:
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
-
 
 
 def get_shapefile_gdf(shapefile, app_workspace, polygons=True):
@@ -482,7 +532,6 @@ def get_well_info(well_id):
 
 
 def create_outlier(well_id):
-
     session = get_session_obj()
     well_id = well_id.split('.')[1]
     well_obj = session.query(Well).filter(Well.id == well_id).first()
@@ -496,17 +545,11 @@ def create_outlier(well_id):
 
 def get_wms_datasets(aquifer_name, variable_id, region_id):
     catalog = app.get_spatial_dataset_service('primary_thredds', as_engine=True)
-    # print(catalog.catalog_refs)
-    # print(catalog.catalog_url, catalog.base_tds_url)
     aquifer_name = aquifer_name.replace(" ", "_")
     c = Crawl(catalog.catalog_url)
-    # print(c.datasets)
     file_str = f'{region_id}/{aquifer_name}/{aquifer_name}_{variable_id}'
     urls = [[s.get("url"), d.name] for d in c.datasets for s in d.services
             if s.get("service").lower() == "wms" and file_str in s.get("url")]
-    print(urls)
-    # print(catalog.get_latest_access_url)
-
     return urls
 
 
@@ -515,7 +558,6 @@ def get_wms_metadata(aquifer_name, file_name, region_id):
     # aquifer_dir = os.path.join(thredds_directory, str(region_id), str(aquifer_obj[1]))
     aquifer_name = aquifer_name.replace(" ", "_")
     file_path = os.path.join(thredds_directory, str(region_id), aquifer_name, file_name)
-    print(file_path)
     ds = xr.open_dataset(file_path)
     range_min = int(ds.tsvalue.min().values)
     range_max = int(ds.tsvalue.max().values)

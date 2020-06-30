@@ -3,7 +3,9 @@
     -moz-transition: display .5s ease;
     -o-transition: display .5s ease;
 }
-
+.stats_heading{
+    font-family:Georgia
+}
 .sk-cube-grid {
     width: 40px;
     height: 40px;

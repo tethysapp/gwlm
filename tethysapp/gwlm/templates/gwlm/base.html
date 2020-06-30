@@ -15,6 +15,7 @@
 {% block app_navigation_items %}
 
 {% url 'gwlm:home' as home_url %}
+{% url 'gwlm:metrics' as metrics_url %}
 {% url 'gwlm:interpolation' as interpolation_url %}
 {% url 'gwlm:jobs-table' as jobs_table %}
 {% url 'gwlm:add-region' as add_region_url %}
@@ -26,8 +27,11 @@
 {% url 'gwlm:add-measurements' as add_measurements_url %}
 {% url 'gwlm:add-variable' as add_variable_url %}
 {% url 'gwlm:update-variable' as update_variable_url %}
-<li class="title">Configuration</li>
+<br>
 <li class="{% if request.path == home_url %}active{% endif %}"><a href="{{home_url}}">Home</a></li>
+<li class="{% if request.path == metrics_url %}active{% endif %}"><a href="{{metrics_url}}">Summary Statistics</a></li>
+{% if user.is_superuser or user.is_staff %}
+<li class="title">Configuration</li>
 <li class="{% if request.path == interpolation_url %}active{% endif %}"><a href="{{interpolation_url}}">Interpolation Wizard</a></li>
 <li class="{% if request.path == jobs_table %}active{% endif %}"><a href="{{jobs_table}}">Interpolation Jobs Table</a></li>
 <li class="{% if request.path == add_region_url %}active{% endif %}"><a href="{{add_region_url}}">Add Region</a></li>
@@ -39,6 +43,7 @@
 <li class="{% if request.path == add_measurements_url %}active{% endif %}"><a href="{{add_measurements_url}}">Add Measurements</a></li>
 <li class="{% if request.path == add_variable_url %}active{% endif %}"><a href="{{add_variable_url}}">Add Variable</a></li>
 <li class="{% if request.path == update_variable_url %}active{% endif %}"><a href="{{update_variable_url}}">Update Variable</a></li>
+{% endif%}
 
 {% endblock %}
 

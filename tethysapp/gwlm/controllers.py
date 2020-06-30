@@ -8,9 +8,15 @@ from .utils import user_permission_test
 from .app import Gwlm as app
 from .model import Region, Aquifer, Variable
 from tethys_sdk.compute import get_scheduler
-from tethys_sdk.gizmos import JobsTable
+from tethys_sdk.gizmos import JobsTable, PlotlyView
 from tethys_compute.models.dask.dask_job_exception import DaskJobException
-from .utils import (geoserver_text_gizmo,
+from .utils import (get_regions,
+                    get_aquifers_list,
+                    get_num_wells,
+                    get_num_measurements,
+                    get_variable_list,
+                    get_metrics,
+                    geoserver_text_gizmo,
                     get_region_select,
                     get_region_variable_select,
                     get_aquifer_select,
@@ -33,6 +39,32 @@ def home(request):
     }
 
     return render(request, 'gwlm/home.html', context)
+
+
+def metrics(request):
+    """
+    Controller for the app metrics page.
+    """
+    regions_list = get_regions()
+    num_regions = len(regions_list)
+    variables_list = get_variable_list()
+    num_variables = len(variables_list)
+    aquifers_list = get_aquifers_list()
+    num_aquifers = len(aquifers_list)
+    num_wells = get_num_wells()
+    num_measurements = get_num_measurements()
+    metrics_plot = PlotlyView(get_metrics(), show_link=True)
+
+    context = {
+        'num_regions': num_regions,
+        'num_variables': num_variables,
+        'num_aquifers': num_aquifers,
+        'num_wells': num_wells,
+        'num_measurements': num_measurements,
+        'metrics_plot': metrics_plot
+    }
+
+    return render(request, 'gwlm/metrics.html', context)
 
 
 def region_map(request):
