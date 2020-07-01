@@ -54,10 +54,10 @@
 <label>
     Filter Wells By Observations
 </label>
-<div id="slider" style="top: 0px; right: 1px; margin: 10px 25px;"></div>
+<div id="slider" style="top: 0; right: 1px; margin: 10px 25px;"></div>
 <div style="margin-right: auto; margin-left: auto; width: 90%; margin-bottom: 10px; text-align: center;">
-    <input type="number" min='1' max='3000' id="input-number-min" readonly>
-    <input type="number" min='2' max='3000' id="input-number-max" readonly>
+    <label for="input-number-min"></label><input type="number" min='1' max='3000' id="input-number-min" readonly>
+    <label for="input-number-max"></label><input type="number" min='2' max='3000' id="input-number-max" readonly>
 </div>
 <div class="hidden">{% gizmo geoserver_text_input %} {% gizmo thredds_text_input %} {% gizmo region_text_input %}</div>
 {% endblock %}

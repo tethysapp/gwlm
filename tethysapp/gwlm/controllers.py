@@ -1,15 +1,13 @@
-from django.shortcuts import render, reverse, redirect
 from django.contrib import messages
-from tethys_sdk.permissions import login_required
-from tethys_sdk.gizmos import Button, TextInput, SelectInput
-from django.http.response import HttpResponseRedirect
 from django.contrib.auth.decorators import user_passes_test
-from .utils import user_permission_test
-from .app import Gwlm as app
-from .model import Region, Aquifer, Variable
+from django.http.response import HttpResponseRedirect
+from django.shortcuts import render, reverse, redirect
 from tethys_sdk.compute import get_scheduler
+from tethys_sdk.gizmos import Button, TextInput, SelectInput
 from tethys_sdk.gizmos import JobsTable, PlotlyView
-from tethys_compute.models.dask.dask_job_exception import DaskJobException
+
+from .app import Gwlm as app
+from .model import Variable
 from .utils import (get_regions,
                     get_aquifers_list,
                     get_num_wells,
@@ -23,7 +21,8 @@ from .utils import (get_regions,
                     get_variable_select,
                     thredds_text_gizmo,
                     get_session_obj)
-import sys
+from .utils import user_permission_test
+
 # get job manager for the app
 job_manager = app.get_job_manager()
 
@@ -104,7 +103,6 @@ def region_map(request):
 
 @user_passes_test(user_permission_test)
 def interpolation(request):
-
     region_select = get_region_select()
     aquifer_select = get_aquifer_select(None)
     variable_select = get_region_variable_select(None)
@@ -127,14 +125,14 @@ def interpolation(request):
                                          )
     well_sample_options = [(i, i) for i in range(101)]
     well_sample_options.append(("No Maximum", 999))
-    rads = [(float(i)/10.0, float(i)/10.0) for i in range(1, 50)]
+    rads = [(float(i) / 10.0, float(i) / 10.0) for i in range(1, 50)]
     for i in range(5, 10, 1):
         rads.append((i, i))
     dates = [(i, i) for i in range(1850, 2021)]
     tolerances = [(f'{i} Year', i) for i in range(1, 26)]
     tolerances.append(("50 Years", 50))
     tolerances.append(("No Limit", 999))
-    ratios = [(f'{i}%', float(i)/100) for i in range(5, 105, 5)]
+    ratios = [(f'{i}%', float(i) / 100) for i in range(5, 105, 5)]
     ratios.append(("No Minimum", 0))
 
     select_search_radius = SelectInput(display_text='Specify search radius in degrees',
@@ -162,7 +160,8 @@ def interpolation(request):
                              name='resolution',
                              multiple=False,
                              options=[(".001 degree", .001), (".0025 degree", .0025), (".005 degree", .005),
-                                      (".01 degree", .01), (".025 degree", .025), (".05 degree", .05), (".1 degree", .10)],
+                                      (".01 degree", .01), (".025 degree", .025), (".05 degree", .05),
+                                      (".1 degree", .10)],
                              initial=".05 degree"
                              )
     end_date = SelectInput(display_text='Interpolation End Date',
@@ -293,7 +292,6 @@ def add_region(request):
 
 @user_passes_test(user_permission_test)
 def update_region(request):
-
     id_input = TextInput(display_text='Region ID',
                          name='id-input',
                          placeholder='',
@@ -352,7 +350,6 @@ def add_aquifer(request):
 
 @user_passes_test(user_permission_test)
 def update_aquifer(request):
-
     id_input = TextInput(display_text='Aquifer ID',
                          name='id-input',
                          placeholder='',
@@ -408,7 +405,6 @@ def add_wells(request):
 
 @user_passes_test(user_permission_test)
 def edit_wells(request):
-
     geoserver_text_input = geoserver_text_gizmo()
 
     context = {
@@ -419,7 +415,6 @@ def edit_wells(request):
 
 @user_passes_test(user_permission_test)
 def add_measurements(request):
-
     region_select = get_region_select()
 
     variable_select = get_variable_select()
@@ -480,7 +475,6 @@ def add_variable(request):
 
         messages.error(request, "Please fix errors.")
 
-
     name_text_input = TextInput(display_text='Variable Name',
                                 name='name',
                                 placeholder='e.g.: Ground Water Depth',
@@ -522,7 +516,6 @@ def add_variable(request):
 
 @user_passes_test(user_permission_test)
 def update_variable(request):
-
     id_input = TextInput(display_text='Variable ID',
                          name='id-input',
                          placeholder='',
@@ -545,7 +538,6 @@ def update_variable(request):
                                 placeholder='e.g.: m',
                                 attributes={'id': 'desc-text-input'},
                                 )
-
 
     context = {
         'id_input': id_input,
@@ -653,5 +645,3 @@ def result(request, job_id):
 def error_message(request):
     messages.add_message(request, messages.ERROR, 'Invalid Scheduler!')
     return redirect(reverse('gwlm:home'))
-
-

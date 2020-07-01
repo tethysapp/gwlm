@@ -20,4 +20,5 @@ requirements:
     - pandarallel
     - gstools
     - thredds_crawler
+    - matplotlib
 post:

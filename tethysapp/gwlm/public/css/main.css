@@ -4,6 +4,7 @@
     -o-transition: display .5s ease;
 }
 .stats_heading{
+    /*noinspection CssNoGenericFontName*/
     font-family:Georgia
 }
 .sk-cube-grid {

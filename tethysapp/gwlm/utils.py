@@ -1,40 +1,74 @@
+import calendar
+import json
 import os
 import shutil
+import time
 import uuid
-import pandas as pd
+from datetime import datetime
+from typing import List, Any, Dict, Tuple
+
 import geopandas as gpd
+import pandas as pd
+import plotly.graph_objects as go
+import simplejson
+import xarray as xr
+from pandarallel import pandarallel
 from shapely import wkt
+from sqlalchemy.sql import func
+from tethys_sdk.gizmos import (TextInput,
+                               SelectInput)
+from thredds_crawler.crawl import Crawl
+
 from .app import Gwlm as app
 from .model import (Region,
                     Aquifer,
                     Well,
                     Measurement,
                     Variable)
-import simplejson
-import json
-from tethys_sdk.gizmos import (TextInput,
-                               SelectInput)
-from pandarallel import pandarallel
-from sqlalchemy.sql import func
-import time
-from datetime import datetime
-import calendar
-from thredds_crawler.crawl import Crawl
-import xarray as xr
-import plotly.graph_objects as go
 
 
 def user_permission_test(user):
+    """
+    Check the permissions of the user
+    Args:
+        user: Django User
+
+    Returns:
+        bool of if user is superuser or staff
+    """
     return user.is_superuser or user.is_staff
 
 
 def get_session_obj():
+    """
+    Helper function to get SQL Alchemy Persistent Store Session Object
+    Returns:
+        SQL Alchemy Session Object
+    """
     app_session = app.get_persistent_store_database('gwdb', as_sessionmaker=True)
     session = app_session()
     return session
 
 
+def get_regions() -> List:
+    """
+    Get All Existing Regions from the Database
+    Returns:
+        list of tuples with region name and region id
+    """
+    session = get_session_obj()
+    regions = session.query(Region).all()
+    region_list = [(region.region_name, region.id) for region in regions]
+    session.close()
+    return region_list
+
+
 def get_region_select():
+    """
+    Generate Region Select Gizmo
+    Returns:
+        Tethys Select Input Gizmo Object to select regions
+    """
     region_list = get_regions()
     region_select = SelectInput(display_text='Select a Region',
                                 name='region-select',
@@ -43,19 +77,16 @@ def get_region_select():
     return region_select
 
 
-def get_regions():
-    session = get_session_obj()
-    regions = session.query(Region).all()
-    region_list = []
+def get_aquifer_select(region_id: int, aquifer_id: bool = False) -> Any:
+    """
+    Generate Aquifer Select Gizmo
+    Args:
+        region_id: Region Id as listed in the Region table
+        aquifer_id: Boolean to decide the aquifer id type
 
-    for region in regions:
-        region_list.append(("%s" % region.region_name, region.id))
-
-    session.close()
-    return region_list
-
-
-def get_aquifer_select(region_id, aquifer_id=False):
+    Returns:
+        Aquifer Select Gizmo Object. Used to generate an aquifer select dropdown.
+    """
     aquifer_list = []
     if region_id is not None:
         session = get_session_obj()
@@ -75,19 +106,25 @@ def get_aquifer_select(region_id, aquifer_id=False):
     return aquifer_select
 
 
-def get_variable_list():
+def get_variable_list() -> List:
+    """
+    Generate list of all variables in the database
+    Returns:
+        a list of tuples with variable name, units and id
+    """
     session = get_session_obj()
     variables = session.query(Variable).all()
-
-    variable_list = []
-    for variable in variables:
-        variable_list.append((f'{variable.name}, {variable.units}', variable.id))
-
+    variable_list = [(f'{variable.name}, {variable.units}', variable.id) for variable in variables]
     session.close()
     return variable_list
 
 
-def get_variable_select():
+def get_variable_select() -> Any:
+    """
+    Generate Variable Select Gizmo
+    Returns:
+        Tethys Select Input Gizmo Object to select variables
+    """
     variable_list = get_variable_list()
 
     variable_select = SelectInput(display_text='Select Variable',
@@ -96,33 +133,39 @@ def get_variable_select():
     return variable_select
 
 
-def get_region_variables_list(region_id):
-    variable_list = []
+def get_region_variables_list(region_id: int) -> List:
+    """
+    Get a list of variables within a given region
+    Args:
+        region_id: Region Id as listed in the Region table
+
+    Returns:
+        a list of tuples with variable name, units and id within a given region
+    """
+
     if region_id is not None:
         session = get_session_obj()
         variables = (session.query(Variable)
                      .join(Measurement, Measurement.variable_id == Variable.id)
                      .join(Well, Measurement.well_id == Well.id)
                      .join(Aquifer, Well.aquifer_id == Aquifer.id)
-                     .filter(Aquifer.region_id == int(region_id))
-                     # .join(Aquifer, Region.id == Aquifer.region_id)
-                     # .join(Measurement, Well.id == Measurement.well_id)
-                     # .filter(Aquifer.region_id == int(region_id))
+                     .filter(Aquifer.region_id == region_id)
                      .distinct()
                      )
-
-        for variable in variables:
-            variable_list.append((f'{variable.name}, {variable.units}', variable.id))
-
+        variable_list = [(f'{variable.name}, {variable.units}', variable.id) for variable in variables]
         session.close()
+        return variable_list
 
-    return variable_list
 
-
-def get_metrics():
+def get_metrics() -> Any:
+    """
+    Generate Summary Statistics of the database
+    Returns:
+        Plotly Figure Object of a Pandas DataFrame grouped by Region, Variable, and Measurements
+    """
     session = get_session_obj()
     metrics_query = (session.query(Region.region_name, Variable.name.label('variable_name'),
-                                   func.count(Measurement.id).label('num_of_measurements'))
+                                   func.count(Measurement.id).label('measurements'))
                      .join(Measurement, Measurement.variable_id == Variable.id)
                      .join(Well, Measurement.well_id == Well.id)
                      .join(Aquifer, Well.aquifer_id == Aquifer.id)
@@ -136,7 +179,7 @@ def get_metrics():
         header=dict(values=['Region Name', 'Variable Name', 'Number of Measurements'],
                     fill_color='paleturquoise',
                     align='left'),
-        cells=dict(values=[metrics_df.region_name, metrics_df.variable_name, metrics_df.num_of_measurements],
+        cells=dict(values=[metrics_df.region_name, metrics_df.variable_name, metrics_df.measurements],
                    fill_color='lavender',
                    align='left'))
     ])
@@ -144,7 +187,15 @@ def get_metrics():
     return fig
 
 
-def get_region_aquifers_list(region_id):
+def get_region_aquifers_list(region_id: int) -> List:
+    """
+    Generate a list of aquifers for a given region
+    Args:
+        region_id: Region Id as listed in the Region table
+
+    Returns:
+        A list of aquifers tuples with aquifer name and if for a given region
+    """
     session = get_session_obj()
     aquifers = session.query(Aquifer).filter(Aquifer.region_id == region_id)
     aquifers_list = [[aquifer.aquifer_name, aquifer.id] for aquifer in aquifers]
@@ -152,7 +203,12 @@ def get_region_aquifers_list(region_id):
     return aquifers_list
 
 
-def get_aquifers_list():
+def get_aquifers_list() -> List:
+    """
+    Generate a list of all the aquifers in the database
+    Returns:
+        A list of all aquifers tuples with aquifer name and id
+    """
     session = get_session_obj()
     aquifers = session.query(Aquifer).all()
     aquifers_list = [[aquifer.aquifer_name, aquifer.id] for aquifer in aquifers]
@@ -160,21 +216,40 @@ def get_aquifers_list():
     return aquifers_list
 
 
-def get_num_wells():
+def get_num_wells() -> int:
+    """
+    Get a count of unique wells in the database
+
+    Returns:
+        The number of unique wells in the database
+    """
     session = get_session_obj()
     wells = session.query(Well.id).distinct().count()
     session.close()
     return wells
 
 
-def get_num_measurements():
+def get_num_measurements() -> int:
+    """
+    Get a count of all the measurements in the database
+    Returns:
+        The total number of measurements in the database
+    """
     session = get_session_obj()
     measurements = session.query(Measurement.id).distinct().count()
     session.close()
     return measurements
 
 
-def get_region_variable_select(region_id):
+def get_region_variable_select(region_id: int) -> Any:
+    """
+    Generate a Variable Select Tethys Gizmo
+    Args:
+        region_id: Region Id as listed in the database
+
+    Returns:
+        A Variable Select Input Tethys Gizmo Object
+    """
     variable_list = get_region_variables_list(region_id)
     variable_select = SelectInput(display_text='Select Variable',
                                   name='variable-select',
@@ -185,7 +260,19 @@ def get_region_variable_select(region_id):
     return variable_select
 
 
-def process_region_shapefile(shapefile, region_name, app_workspace):
+def process_region_shapefile(shapefile: Any,
+                             region_name: str,
+                             app_workspace: Any) -> Dict:
+    """
+    Process Uploaded Region Shapefile
+    Args:
+        shapefile: list of shapefile files
+        region_name: Region Name
+        app_workspace: Temporary App workspace path
+
+    Returns:
+        Response dict with success or error string
+    """
 
     session = get_session_obj()
     temp_dir = None
@@ -213,17 +300,28 @@ def process_region_shapefile(shapefile, region_name, app_workspace):
                 shutil.rmtree(temp_dir)
 
 
-def process_aquifer_shapefile(shapefile,
-                              region_id,
-                              name_attr,
-                              id_attr,
-                              app_workspace):
+def process_aquifer_shapefile(shapefile: Any,
+                              region_id: int,
+                              name_attr: str,
+                              id_attr: str,
+                              app_workspace: Any) -> Dict:
+    """
+    Process uploaded auifer shapefile
+    Args:
+        shapefile: List of shapefile files
+        region_id: Region id as listed in the database
+        name_attr: Aquifer Name Column
+        id_attr: Aquifer Id Column
+        app_workspace: Temp App workspace
 
+    Returns:
+        Response dict with success or error string
+    """
     session = get_session_obj()
     temp_dir = None
 
     def add_aquifer_apply(row):
-        aquifer = Aquifer(region_id=int(region_id),
+        aquifer = Aquifer(region_id=region_id,
                           aquifer_name=row.aquifer_name,
                           aquifer_id=row.aquifer_id,
                           geometry=row.geometry)
@@ -246,7 +344,7 @@ def process_aquifer_shapefile(shapefile,
         end_time = time.time()
         total_time = (end_time - start_time)
 
-        return {"success": "success"}
+        return {"success": "success", "total_time": total_time}
 
     except Exception as e:
         session.close()
@@ -261,7 +359,19 @@ def process_aquifer_shapefile(shapefile,
                 shutil.rmtree(temp_dir)
 
 
-def get_shapefile_gdf(shapefile, app_workspace, polygons=True):
+def get_shapefile_gdf(shapefile: Any,
+                      app_workspace: Any,
+                      polygons: bool = True) -> Tuple[Any, Any]:
+    """
+    Helper function to process uploaded shapefile
+    Args:
+        shapefile: List of shapefile files
+        app_workspace: Temp App Workspace
+        polygons: Boolean to determine a polygon or point shapefile
+
+    Returns:
+        GeoDataFrame of the shapefile, Temp Directory of the processed shapefile
+    """
     temp_id = uuid.uuid4()
     temp_dir = os.path.join(app_workspace.path, str(temp_id))
     os.makedirs(temp_dir)
@@ -299,7 +409,19 @@ def get_shapefile_gdf(shapefile, app_workspace, polygons=True):
     return gdf, temp_dir
 
 
-def get_shapefile_attributes(shapefile, app_workspace, polygons=True):
+def get_shapefile_attributes(shapefile: Any,
+                             app_workspace: Any,
+                             polygons: bool = True) -> Any:
+    """
+    Get attributes from the uploaded shapefile
+    Args:
+        shapefile: list of shapefiles
+        app_workspace: Temporary App workspace
+        polygons: Boolean to indicate if the shapefile is polygon or point geometries
+
+    Returns:
+        list of attributes in the shapefile. returns an error string on fail.
+    """
     temp_dir = None
     try:
 

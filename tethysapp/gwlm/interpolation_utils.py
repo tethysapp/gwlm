@@ -1,68 +1,42 @@
 import calendar
-import datetime
-
-import pandas as pd
-import geopandas as gpd
-import numpy as np
-from scipy import interpolate
-import scipy.interpolate as sci_intrp
-import statsmodels.api as sm
-from shapely import wkb, wkt
-from .utils import (get_session_obj,
-                    get_region_aquifers_list)
-from .app import Gwlm as app
-import gstools as gs
-import matplotlib.pyplot as plt
-import matplotlib.backends.backend_pdf as plt_pdf
-import urllib
-from urllib import request
 import copy
-from xml.etree import cElementTree as ET
-from geoalchemy2 import functions as gf2
-from timeit import default_timer as timer
-import netCDF4
-import rioxarray
-import xarray
-import json
-import time
+import datetime
 import os
 import shutil
-from pathlib import Path
 import tempfile
+import time
+import urllib
+from pathlib import Path
+from timeit import default_timer as timer
+from urllib import request
+from xml.etree import cElementTree as ET
+
+import geopandas as gpd
+import gstools as gs
+import matplotlib.backends.backend_pdf as plt_pdf
+import matplotlib.pyplot as plt
+import netCDF4
+import numpy as np
+import pandas as pd
+import scipy.interpolate as sci_intrp
+import xarray
+from geoalchemy2 import functions as gf2
+from scipy import interpolate
+from shapely import wkt
 from shapely.geometry import mapping
-from .model import (Region,
-                    Aquifer,
+
+from .app import Gwlm as app
+from .model import (Aquifer,
                     Well,
-                    Measurement,
-                    Variable)
-
-
-INFO_DICT = {'region': '3',
-             'aquifer': '24',
-             'variable': '1',
-             'porosity': '0.1',
-             'spatial_interpolation': 'IDW',
-             'temporal_interpolation': 'MLR',
-             'search_radius': '0.1',
-             'ndmin': '5',
-             'ndmax': '15',
-             'start_date': '1950',
-             'end_date': '2000',
-             'resolution': '0.05',
-             'min_ratio': '0.75',
-             'time_tolerance': '1',
-             'frequency': '5',
-             'default': '0',
-             'min_samples': '5',
-             'seasonal': '999',
-             'from_wizard': 'true'}
+                    Measurement)
+from .utils import (get_session_obj,
+                    get_region_aquifers_list)
 
 SERVER1 = "https://www.esrl.noaa.gov/psd/thredds/wms/Datasets/dai_pdsi/pdsi.mon.mean.selfcalibrated.nc"
 LAYER1 = "pdsi"  # name of data column to be returned
 SERVER2 = "https://www.esrl.noaa.gov/psd/thredds/wms/Datasets/cpcsoil/soilw.mon.mean.nc"
 LAYER2 = "soilw"  # name of data column to be returned
 YEARS = [1, 3, 5, 10]
-THREDDS_PATH = '/home/dev/Thredds/public/testdata/groundwater'
 
 
 def smooth(y, box_size):
@@ -83,7 +57,7 @@ def smooth(y, box_size):
     return y_smooth
 
 
-def extract_well_data(name, well_df,  start_date, end_date, min_samples):
+def extract_well_data(name, well_df, end_date, min_samples):
     if len(well_df) >= min_samples:
         # if (well_df['date'].min() < start_date) and (well_df['date'].max() > end_date):
         # elevation = well_df['gse'].unique()[0]
@@ -289,7 +263,6 @@ def plot_imputed_results(wells_df, combined_df, imputed_df, well_names):
         plt.plot(combined_df[well], '*', label='Combined')
         plt.plot(wells_df[well], '.', label='Measured', linewidth=0.5)
 
-
         plt.plot(imputed_df[i_name], 'b-', label='Imputed Data', linewidth=0.5)
 
         plt.title(well)
@@ -425,10 +398,10 @@ def fit_model_var(coords_df, x_c, y_c, values):
 
 
 def extract_query_objects(region_id, aquifer_id, variable):
-
     session = get_session_obj()
-    aquifer_obj = session.query(gf2.ST_AsText(Aquifer.geometry), Aquifer.aquifer_name).filter(Aquifer.region_id == region_id,
-                                                                                              Aquifer.id == aquifer_id).first()
+    aquifer_obj = session.query(gf2.ST_AsText(Aquifer.geometry), Aquifer.aquifer_name).filter(
+        Aquifer.region_id == region_id,
+        Aquifer.id == aquifer_id).first()
     bbox = wkt.loads(aquifer_obj[0]).bounds
     print(bbox)
     wells_query = session.query(Well).filter(Well.aquifer_id == aquifer_id)
@@ -478,9 +451,6 @@ def generate_nc_file(file_name, grid_x, grid_y, years_df, coords_df, x_coords, y
     h = netCDF4.Dataset(file_path, 'w', format="NETCDF4")
     lat_len = len(grid_y)
     lon_len = len(grid_x)
-    time = h.createDimension("time", 0)
-    lat = h.createDimension("lat", lat_len)
-    lon = h.createDimension("lon", lon_len)
     latitude = h.createVariable("lat", np.float64, ("lat"))
     longitude = h.createVariable("lon", np.float64, ("lon"))
     time = h.createVariable("time", np.float64, ("time"), fill_value="NaN")
@@ -563,7 +533,7 @@ def mlr_interpolation(mlr_dict):
     gldas_df, names = sat_rolling_window(YEARS, gldas_df)
     print('gldas', gldas_df)
 
-    wells_df = pd.concat([extract_well_data(name, group,  start_date, end_date, min_samples)
+    wells_df = pd.concat([extract_well_data(name, group, end_date, min_samples)
                           for name, group in measurements_df.groupby('well_id')], axis=1, sort=False)
     print('wells_df', wells_df)
     wells_df.drop_duplicates(inplace=True)
@@ -609,16 +579,13 @@ def mlr_interpolation(mlr_dict):
 
 
 def process_interpolation(info_dict):
-    start_time = time.time()
-
     print(info_dict)
     from_wizard = info_dict['from_wizard']
     if from_wizard == 'true':
-        interpolate = 1
+        pass
     else:
-        interpolate = 0
+        pass
 
-    spatial_interpolation_type = None
     start_date = int(info_dict['start_date'])
     end_date = int(info_dict['end_date'])
     interval = int(info_dict['frequency'])
@@ -626,27 +593,19 @@ def process_interpolation(info_dict):
     start_time = calendar.timegm(datetime.datetime(start_date, 1, 1).timetuple())
     end_time = calendar.timegm(datetime.datetime(end_date, 1, 1).timetuple())
 
-    sixmonths = False
-    threemonths = False
     time_u = "Y"
-    time_v = 0
-    date_shift = 2
 
     if interval <= .5:
-        sixmonths = True
         time_u = "M"
         time_v = 6
         iterations += 1
-        date_shift = 1
         if interval == .25:
-            threemonths = True
             iterations += 2
             time_v = 3
     else:
         time_v = int(interval)
 
     resample_rate = f'{time_v}{time_u}'
-    existing_interp = False
 
     temporal_interpolation = info_dict['temporal_interpolation']
     min_samples = int(info_dict['min_samples'])
@@ -658,7 +617,6 @@ def process_interpolation(info_dict):
     else:
         aquifer_list = [int(aquifer_id)]
 
-    seasonal = int(info_dict['seasonal'])
     variable = int(info_dict['variable'])
     min_ratio = float(info_dict['min_ratio'])
     time_tolerance = int(info_dict['time_tolerance'])
@@ -687,6 +645,5 @@ def process_interpolation(info_dict):
     end_time = time.time()
     total_time = end_time - start_time
     return total_time
-
 
 # process_interpolation(INFO_DICT)

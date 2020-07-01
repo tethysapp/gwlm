@@ -1,5 +1,5 @@
-from tethys_sdk.base import TethysAppBase, url_map_maker
 from tethys_sdk.app_settings import PersistentStoreDatabaseSetting, SpatialDatasetServiceSetting, CustomSetting
+from tethys_sdk.base import TethysAppBase, url_map_maker
 
 
 class Gwlm(TethysAppBase):
@@ -7,7 +7,7 @@ class Gwlm(TethysAppBase):
     Tethys app class for Ground Water Level Mapper.
     """
 
-    name = 'Groundwater Level Mapper'
+    name = 'Groundwater Data Mapper'
     index = 'gwlm:home'
     icon = 'gwlm/images/gw_logo.png'
     package = 'gwlm'
@@ -271,7 +271,6 @@ class Gwlm(TethysAppBase):
         )
 
         return custom_settings
-
 
     def persistent_store_settings(self):
         """

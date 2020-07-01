@@ -1,10 +1,17 @@
-from django.http import JsonResponse, HttpResponse, Http404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from sqlalchemy.orm.exc import ObjectDeletedError
-from sqlalchemy.exc import IntegrityError
-import math
 import json
+import math
+
+from django.contrib.auth.decorators import user_passes_test
+from django.http import JsonResponse
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import ObjectDeletedError
+from tethys_sdk.workspaces import app_workspace
+
+from .interpolation_utils import process_interpolation
+from .model import (Region,
+                    Aquifer,
+                    Variable,
+                    Well)
 from .utils import (create_outlier,
                     get_session_obj,
                     user_permission_test,
@@ -20,20 +27,11 @@ from .utils import (create_outlier,
                     get_region_variables_list,
                     process_wells_file,
                     process_measurements_file)
-from tethys_sdk.workspaces import app_workspace
-from .model import (Region,
-                    Aquifer,
-                    Variable,
-                    Well)
-from .interpolation_utils import process_interpolation
-
 
 
 @user_passes_test(user_permission_test)
 @app_workspace
 def region_add(request, app_workspace):
-    response = {}
-
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -48,10 +46,6 @@ def region_add(request, app_workspace):
 
 @user_passes_test(user_permission_test)
 def region_tabulator(request):
-    json_obj = {}
-
-    info = request.GET
-
     page = int(request.GET.get('page'))
     page = page - 1
     size = int(request.GET.get('size'))
@@ -78,8 +72,6 @@ def region_tabulator(request):
 
 @user_passes_test(user_permission_test)
 def region_update(request):
-    response = {}
-
     session = get_session_obj()
 
     if request.is_ajax() and request.method == 'POST':
@@ -138,12 +130,10 @@ def region_delete(request):
 @user_passes_test(user_permission_test)
 @app_workspace
 def aquifer_add(request, app_workspace):
-    response = {}
-
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
-        region_id = info.get('region_id')
+        region_id = int(info.get('region_id'))
         name_attr = info.get('name_attribute')
         id_attr = info.get('id_attribute')
 
@@ -160,10 +150,6 @@ def aquifer_add(request, app_workspace):
 
 @user_passes_test(user_permission_test)
 def aquifer_tabulator(request):
-    json_obj = {}
-
-    info = request.GET
-
     page = int(request.GET.get('page'))
     page = page - 1
     size = int(request.GET.get('size'))
@@ -191,8 +177,6 @@ def aquifer_tabulator(request):
 
 @user_passes_test(user_permission_test)
 def aquifer_update(request):
-    response = {}
-
     session = get_session_obj()
 
     if request.is_ajax() and request.method == 'POST':
@@ -253,9 +237,6 @@ def aquifer_delete(request):
 @user_passes_test(user_permission_test)
 @app_workspace
 def get_shp_attributes(request, app_workspace):
-
-    response = {}
-
     if request.is_ajax() and request.method == 'POST':
 
         try:
@@ -278,9 +259,6 @@ def get_shp_attributes(request, app_workspace):
 @user_passes_test(user_permission_test)
 @app_workspace
 def get_well_attributes(request, app_workspace):
-
-    response = {}
-
     if request.is_ajax() and request.method == 'POST':
 
         try:
@@ -304,9 +282,6 @@ def get_well_attributes(request, app_workspace):
 @user_passes_test(user_permission_test)
 @app_workspace
 def get_measurements_attributes(request, app_workspace):
-
-    response = {}
-
     if request.is_ajax() and request.method == 'POST':
 
         try:
@@ -328,11 +303,10 @@ def get_measurements_attributes(request, app_workspace):
 
 @user_passes_test(user_permission_test)
 def get_aquifers(request):
-    response = {}
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
-        region_id = info.get('id')
+        region_id = int(info.get('id'))
         aquifers_list = get_region_aquifers_list(region_id)
         variables_list = get_region_variables_list(region_id)
 
@@ -345,7 +319,6 @@ def get_aquifers(request):
 
 @user_passes_test(user_permission_test)
 def get_wells(request):
-    response = {}
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -364,8 +337,6 @@ def get_wells(request):
 @user_passes_test(user_permission_test)
 @app_workspace
 def wells_add(request, app_workspace):
-    response = {}
-
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -383,7 +354,6 @@ def wells_add(request, app_workspace):
                                       gse, attributes, file,
                                       aquifer_id, aquifer_col,
                                       app_workspace, region_id)
-
 
         return JsonResponse(response)
 
@@ -450,8 +420,6 @@ def well_delete(request):
 @user_passes_test(user_permission_test)
 @app_workspace
 def measurements_add(request, app_workspace):
-    response = {}
-
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -469,7 +437,6 @@ def measurements_add(request, app_workspace):
                                              aquifer_id, aquifer_col,
                                              app_workspace)
 
-
         return JsonResponse(response)
 
 
@@ -477,7 +444,6 @@ def region_timeseries(request):
     response = {}
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
-        aquifer_id = info.get('aquifer_id')
         well_id = info.get('well_id')
         variable_id = info.get('variable_id')
         timeseries = get_timeseries(well_id, variable_id)
@@ -547,8 +513,6 @@ def variable_tabulator(request):
 
 @user_passes_test(user_permission_test)
 def variable_update(request):
-    response = {}
-
     session = get_session_obj()
 
     if request.is_ajax() and request.method == 'POST':
@@ -651,7 +615,6 @@ def interpolate(request):
 
 
 def region_wms_datasets(request):
-
     response = {}
     if request.is_ajax() and request.method == 'POST':
         # get/check information from AJAX request
@@ -667,7 +630,6 @@ def region_wms_datasets(request):
 
 
 def region_wms_metadata(request):
-
     response = {}
     if request.is_ajax() and request.method == 'POST':
         # get/check information from AJAX request

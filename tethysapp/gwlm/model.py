@@ -1,23 +1,18 @@
-import json
-from sqlalchemy.ext.declarative import declarative_base
+from geoalchemy2 import Geometry
 from sqlalchemy import (Column,
                         Integer,
                         Boolean,
                         Float,
                         String,
-                        select,
                         UniqueConstraint,
                         JSON,
                         ForeignKey,
                         Index,
-                        ForeignKeyConstraint,
-                        PrimaryKeyConstraint,
                         Sequence)
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (sessionmaker,
                             relationship,
-                            backref,
-                            column_property)
-from geoalchemy2 import Geometry, WKTElement
+                            backref)
 
 Base = declarative_base()
 
