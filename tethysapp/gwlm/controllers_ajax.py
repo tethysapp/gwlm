@@ -32,6 +32,9 @@ from .utils import (create_outlier,
 @user_passes_test(user_permission_test)
 @app_workspace
 def region_add(request, app_workspace):
+    """
+    Ajax Controller to process the region shapefile. Submitted through the add_region page.
+    """
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -46,6 +49,9 @@ def region_add(request, app_workspace):
 
 @user_passes_test(user_permission_test)
 def region_tabulator(request):
+    """
+    Ajax controller to generate the region tabulator table
+    """
     page = int(request.GET.get('page'))
     page = page - 1
     size = int(request.GET.get('size'))
@@ -72,6 +78,9 @@ def region_tabulator(request):
 
 @user_passes_test(user_permission_test)
 def region_update(request):
+    """
+    Ajax controller to update region values in the edit region page
+    """
     session = get_session_obj()
 
     if request.is_ajax() and request.method == 'POST':
@@ -100,7 +109,7 @@ def region_update(request):
 @user_passes_test(user_permission_test)
 def region_delete(request):
     """
-    Controller for deleting a point.
+    Ajax controller for deleting a region.
     """
     session = get_session_obj()
 
@@ -111,7 +120,7 @@ def region_delete(request):
         region_id = post_info.get('region_id')
 
         try:
-            # delete point
+            # delete region
             try:
                 region = session.query(Region).get(region_id)
             except ObjectDeletedError:
@@ -130,6 +139,9 @@ def region_delete(request):
 @user_passes_test(user_permission_test)
 @app_workspace
 def aquifer_add(request, app_workspace):
+    """
+    Ajax controller to add aquifers to a region
+    """
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -150,6 +162,9 @@ def aquifer_add(request, app_workspace):
 
 @user_passes_test(user_permission_test)
 def aquifer_tabulator(request):
+    """
+    Ajax controller to generate the aquifer tabulator table
+    """
     page = int(request.GET.get('page'))
     page = page - 1
     size = int(request.GET.get('size'))
@@ -177,6 +192,9 @@ def aquifer_tabulator(request):
 
 @user_passes_test(user_permission_test)
 def aquifer_update(request):
+    """
+    Ajax controller to update aquifer values in the edit aquifer page
+    """
     session = get_session_obj()
 
     if request.is_ajax() and request.method == 'POST':
@@ -207,7 +225,7 @@ def aquifer_update(request):
 @user_passes_test(user_permission_test)
 def aquifer_delete(request):
     """
-    Controller for deleting a point.
+    Controller for deleting an aquifer through the edit aquifer page.
     """
     session = get_session_obj()
 
@@ -237,6 +255,9 @@ def aquifer_delete(request):
 @user_passes_test(user_permission_test)
 @app_workspace
 def get_shp_attributes(request, app_workspace):
+    """
+    Ajax controller to get attributes of uploaded aquifer file. Can be shapefile, csv, or geojson.
+    """
     if request.is_ajax() and request.method == 'POST':
 
         try:
@@ -259,6 +280,9 @@ def get_shp_attributes(request, app_workspace):
 @user_passes_test(user_permission_test)
 @app_workspace
 def get_well_attributes(request, app_workspace):
+    """
+    Ajax controller to get attributes for add wells page
+    """
     if request.is_ajax() and request.method == 'POST':
 
         try:
@@ -266,7 +290,6 @@ def get_well_attributes(request, app_workspace):
             shapefile = request.FILES.getlist('shapefile')
 
             attributes = get_shapefile_attributes(shapefile, app_workspace, False)
-            print(attributes)
 
             response = {"success": "success",
                         "attributes": attributes}
@@ -282,6 +305,9 @@ def get_well_attributes(request, app_workspace):
 @user_passes_test(user_permission_test)
 @app_workspace
 def get_measurements_attributes(request, app_workspace):
+    """
+    Ajax controller to get attributes for add measurements page
+    """
     if request.is_ajax() and request.method == 'POST':
 
         try:
@@ -303,6 +329,9 @@ def get_measurements_attributes(request, app_workspace):
 
 @user_passes_test(user_permission_test)
 def get_aquifers(request):
+    """
+    Ajax controller to get list of aquifers in a region
+    """
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -319,6 +348,9 @@ def get_aquifers(request):
 
 @user_passes_test(user_permission_test)
 def get_wells(request):
+    """
+    Ajax controller to get wells in a given aquifer
+    """
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -337,6 +369,9 @@ def get_wells(request):
 @user_passes_test(user_permission_test)
 @app_workspace
 def wells_add(request, app_workspace):
+    """
+    Ajax controller to add wells
+    """
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -349,7 +384,7 @@ def wells_add(request, app_workspace):
         file = request.FILES.getlist('shapefile')
         aquifer_id = info.get('aquifer_id')
         aquifer_col = info.get('aquifer_col')
-        region_id = info.get('region_id')
+        region_id = int(info.get('region_id'))
         response = process_wells_file(lat, lon, well_id, name,
                                       gse, attributes, file,
                                       aquifer_id, aquifer_col,
@@ -360,6 +395,9 @@ def wells_add(request, app_workspace):
 
 @user_passes_test(user_permission_test)
 def wells_tabulator(request):
+    """
+    Ajax controller for the wells tabulator table
+    """
     page = int(request.GET.get('page'))
     page = page - 1
     size = int(request.GET.get('size'))
@@ -390,7 +428,7 @@ def wells_tabulator(request):
 @user_passes_test(user_permission_test)
 def well_delete(request):
     """
-    Controller for deleting a point.
+    Controller for deleting a well.
     """
     session = get_session_obj()
 
@@ -420,6 +458,9 @@ def well_delete(request):
 @user_passes_test(user_permission_test)
 @app_workspace
 def measurements_add(request, app_workspace):
+    """
+    Ajax controller to add measurements to wells
+    """
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
 
@@ -427,9 +468,9 @@ def measurements_add(request, app_workspace):
         time = info.get("time")
         value = info.get("value")
         well_id = info.get("id")
-        variable_id = info.get("variable_id")
+        variable_id = int(info.get("variable_id"))
         time_format = info.get("date_format")
-        region_id = info.get("region_id")
+        region_id = int(info.get("region_id"))
         aquifer_id = info.get('aquifer_id')
         aquifer_col = info.get('aquifer_col')
         response = process_measurements_file(region_id, well_id, time, value,
@@ -441,11 +482,14 @@ def measurements_add(request, app_workspace):
 
 
 def region_timeseries(request):
+    """
+    Ajax controller to get timeseries for a selected region, well, variable
+    """
     response = {}
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
         well_id = info.get('well_id')
-        variable_id = info.get('variable_id')
+        variable_id = int(info.get('variable_id'))
         timeseries = get_timeseries(well_id, variable_id)
         response['success'] = 'success'
         response['timeseries'] = timeseries
@@ -455,11 +499,14 @@ def region_timeseries(request):
 
 
 def region_well_obs(request):
+    """
+    Ajax controller to get the observation count for wells for a given aquifer and variable
+    """
     response = {}
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
-        aquifer_id = info.get('aquifer_id')
-        variable_id = info.get('variable_id')
+        aquifer_id = int(info.get('aquifer_id'))
+        variable_id = int(info.get('variable_id'))
         well_obs = get_well_obs(aquifer_id, variable_id)
         response['obs_dict'] = well_obs
         if len(well_obs) > 0:
@@ -471,6 +518,9 @@ def region_well_obs(request):
 
 
 def set_outlier(request):
+    """
+    Ajax controller to set outlier
+    """
     response = {}
     if request.is_ajax() and request.method == 'POST':
         info = request.POST
@@ -484,6 +534,9 @@ def set_outlier(request):
 
 @user_passes_test(user_permission_test)
 def variable_tabulator(request):
+    """
+    Ajax controller to get variable tabulator table
+    """
     page = int(request.GET.get('page'))
     page = page - 1
     size = int(request.GET.get('size'))
@@ -513,6 +566,9 @@ def variable_tabulator(request):
 
 @user_passes_test(user_permission_test)
 def variable_update(request):
+    """
+    Ajax controller to update variable values in the edit variable page
+    """
     session = get_session_obj()
 
     if request.is_ajax() and request.method == 'POST':
@@ -573,32 +629,11 @@ def variable_delete(request):
             return JsonResponse({'error': "There is a problem with your request."})
 
 
-INFO_DICT = {'region': '3',
-             'aquifer': '24',
-             'variable': '1',
-             'porosity': '0.1',
-             'spatial_interpolation': 'IDW',
-             'temporal_interpolation': 'MLR',
-             'search_radius': '0.1',
-             'ndmin': '5',
-             'ndmax': '15',
-             'start_date': '1970',
-             'end_date': '1980',
-             'resolution': '0.05',
-             'min_ratio': '0.25',
-             'time_tolerance': '20',
-             'frequency': '5',
-             'default': '0',
-             'min_samples': '10',
-             'seasonal': '999',
-             'from_wizard': 'true',
-             'gap_size': '365 days',
-             'pad': '90',
-             'spacing': '1MS'}
-
-
 @user_passes_test(user_permission_test)
 def interpolate(request):
+    """
+    Ajax controller to generate the interpolation file
+    """
     response = {}
     if request.is_ajax() and request.method == 'POST':
         # get/check information from AJAX request
@@ -615,6 +650,9 @@ def interpolate(request):
 
 
 def region_wms_datasets(request):
+    """
+    Ajax controller to get wms datasets for given region, aquifer
+    """
     response = {}
     if request.is_ajax() and request.method == 'POST':
         # get/check information from AJAX request
@@ -630,6 +668,9 @@ def region_wms_datasets(request):
 
 
 def region_wms_metadata(request):
+    """
+    Ajax controller to get the min and max for a selected interpolation netcdf file
+    """
     response = {}
     if request.is_ajax() and request.method == 'POST':
         # get/check information from AJAX request

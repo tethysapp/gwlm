@@ -443,7 +443,12 @@ def get_shapefile_attributes(shapefile: Any,
                 shutil.rmtree(temp_dir)
 
 
-def geoserver_text_gizmo():
+def geoserver_text_gizmo() -> Any:
+    """
+    Geoserver Gizmo Input to Store Geoserver WFS Endpoint
+    Returns:
+        A Hidden Tethys Gizmo Input with Geoserver WFS Endpoint
+    """
     geoserver_wfs_endpoint = app.get_spatial_dataset_service('primary_geoserver', as_wfs=True)
 
     geoserver_text_input = TextInput(display_text='Geoserver',
@@ -455,7 +460,12 @@ def geoserver_text_gizmo():
     return geoserver_text_input
 
 
-def thredds_text_gizmo():
+def thredds_text_gizmo() -> Any:
+    """
+    Thredds Gizmo Input to Store Thredds WMS Endpoint
+    Returns:
+        A Hidden Tethys Gizmo Input with Thredds WMS Endpoint
+    """
     thredds_endpoint = app.get_spatial_dataset_service('primary_thredds', as_endpoint=True)
     thredds_text_input = TextInput(display_text='Thredds',
                                    name='thredds-text-input',
@@ -466,17 +476,35 @@ def thredds_text_gizmo():
     return thredds_text_input
 
 
-def process_wells_file(lat,
-                       lon,
-                       well_id,
-                       name,
-                       gse,
-                       attrs,
-                       file,
-                       aquifer_id,
-                       aquifer_col,
-                       app_workspace,
-                       region_id):
+def process_wells_file(lat: str,
+                       lon: str,
+                       well_id: str,
+                       name: str,
+                       gse: str,
+                       attrs: str,
+                       file: Any,
+                       aquifer_id: str,
+                       aquifer_col: str,
+                       app_workspace: Any,
+                       region_id: int) -> Dict:
+    """
+    Add the uploaded Wells File to the Database
+    Args:
+        lat: Latitude Column String
+        lon: Longitude Column String
+        well_id: Well Id Column String
+        name: Name Column String
+        gse: Ground Surface Elevation Column String
+        attrs: Extra Attributes Column String
+        file: Uploaded file object
+        aquifer_id: Aquifer Id String
+        aquifer_col: Aquifer Column String
+        app_workspace: Temporary Workspace Directory
+        region_id: Region Id as listed in the Database
+
+    Returns:
+        A response dict of success or failure
+    """
     temp_dir = None
     session = get_session_obj()
     try:
@@ -540,16 +568,33 @@ def process_wells_file(lat,
     return response
 
 
-def process_measurements_file(region_id,
-                              well_id,
-                              m_time,
-                              value,
-                              time_format,
-                              variable_id,
-                              file,
-                              aquifer_id,
-                              aquifer_col,
-                              app_workspace):
+def process_measurements_file(region_id: int,
+                              well_id: str,
+                              m_time: str,
+                              value: str,
+                              time_format: str,
+                              variable_id: int,
+                              file: Any,
+                              aquifer_id: str,
+                              aquifer_col: str,
+                              app_workspace: Any) -> Dict:
+    """
+    Add uploaded measurements to the database
+    Args:
+        region_id: Region Id as listed in the Database
+        well_id: Well Id Column String
+        m_time: Time Column String
+        value: Measurement Value Column String
+        time_format: Time Format String
+        variable_id: Variable Id as listed in the Database
+        file: Uploaded measurement file
+        aquifer_id: Aquifer Id as selected by the user
+        aquifer_col: Aquifer Id Column String
+        app_workspace: Temporary App Workspace Directory
+
+    Returns:
+        A response dict success or failure
+    """
 
     temp_dir = None
     session = get_session_obj()
@@ -612,19 +657,37 @@ def process_measurements_file(region_id,
     return response
 
 
-def get_timeseries(well_id, variable_id):
+def get_timeseries(well_id: str, variable_id: int) -> List:
+    """
+    Generate Highcharts appropriate timeseries list
+    Args:
+        well_id: Well Id string as stored in the Measurement Table
+        variable_id: Variable Id integer as stored in the variable/measurement table
+
+    Returns:
+        list of lists with utc time in milliseconds and measurement value
+    """
     session = get_session_obj()
     well_id = well_id.split('.')[1]
     ts_obj = session.query(Measurement).filter(Measurement.well_id == well_id,
                                                Measurement.variable_id == variable_id).all()
-    timeseries = [[calendar.timegm(datetime.strptime(obj.ts_time, obj.ts_format).utctimetuple())*1000, obj.ts_value]
-                  for obj in ts_obj]
-    timeseries = sorted(timeseries)
+    timeseries = sorted([[calendar.timegm(datetime.strptime(obj.ts_time, obj.ts_format).utctimetuple())*1000,
+                          obj.ts_value] for obj in ts_obj])
     session.close()
     return timeseries
 
 
-def get_well_obs(aquifer_id, variable_id):
+def get_well_obs(aquifer_id: int, variable_id: int) -> Dict:
+    """
+    Get a Dict containing the Count of Measurements for each well in an aquifer
+    Args:
+        aquifer_id: Aquifer Id Integer as listed in the database
+        variable_id: Variable Id Integer as listed in the database
+
+    Returns:
+        Dictionary of well ids as keys and variable measurement count as values.
+        Will be used for the slider in the region map.
+    """
     session = get_session_obj()
     wells_list = [r.id for r in session.query(Well.id).filter(Well.aquifer_id == aquifer_id).distinct()]
     m_query = (session.query(Measurement.well_id,
@@ -639,7 +702,15 @@ def get_well_obs(aquifer_id, variable_id):
     return obs_dict
 
 
-def get_well_info(well_id):
+def get_well_info(well_id: str) -> Dict:
+    """
+    Get well info for chart metadata
+    Args:
+        well_id: Well Id String from the popup
+
+    Returns:
+        A Dictionary with Well metadata that will be showed in the timeseries chart
+    """
     session = get_session_obj()
     well_id = well_id.split('.')[1]
     well = session.query(Well).filter(Well.id == well_id).first()
@@ -653,7 +724,15 @@ def get_well_info(well_id):
     return json_dict
 
 
-def create_outlier(well_id):
+def create_outlier(well_id: str) -> bool:
+    """
+    Set outlier based on selected well id
+    Args:
+        well_id: Well Id string from popup click
+
+    Returns:
+        Outlier boolean of the well
+    """
     session = get_session_obj()
     well_id = well_id.split('.')[1]
     well_obj = session.query(Well).filter(Well.id == well_id).first()
@@ -665,7 +744,17 @@ def create_outlier(well_id):
     return set_value
 
 
-def get_wms_datasets(aquifer_name, variable_id, region_id):
+def get_wms_datasets(aquifer_name: str, variable_id: str, region_id: str) -> List:
+    """
+    Get a list of all available wms datasets for given region, aquifer, and variable
+    Args:
+        aquifer_name: Selected Aquifer Name from the Region Map page
+        variable_id: Selected Variable Id from the Region Map page
+        region_id: Selected region from the Region map page
+
+    Returns:
+        List of lists Thredds WMS Urls and File Names
+    """
     catalog = app.get_spatial_dataset_service('primary_thredds', as_engine=True)
     aquifer_name = aquifer_name.replace(" ", "_")
     c = Crawl(catalog.catalog_url)
@@ -675,7 +764,17 @@ def get_wms_datasets(aquifer_name, variable_id, region_id):
     return urls
 
 
-def get_wms_metadata(aquifer_name, file_name, region_id):
+def get_wms_metadata(aquifer_name: str, file_name: str, region_id: str) -> Tuple[int, int]:
+    """
+    Get min and max for selected wms layer
+    Args:
+        aquifer_name: Selected Aquifer Name
+        file_name: Selected netcdf file name
+        region_id: Selected Region Id
+
+    Returns:
+        The min and max value for a selected interpolation netcdf file
+    """
     thredds_directory = app.get_custom_setting('gw_thredds_directoy')
     # aquifer_dir = os.path.join(thredds_directory, str(region_id), str(aquifer_obj[1]))
     aquifer_name = aquifer_name.replace(" ", "_")
