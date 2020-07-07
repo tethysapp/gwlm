@@ -21,4 +21,6 @@ requirements:
     - gstools
     - thredds_crawler
     - matplotlib
+    - sphinx
+    - sphinx-rtd-theme
 post:
