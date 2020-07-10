@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import scipy.interpolate as sci_intrp
 import xarray
+import rioxarray
 from geoalchemy2 import functions as gf2
 from scipy import interpolate
 from shapely import wkt
@@ -446,11 +447,15 @@ def krig_imputed_wells(years_df, coords_df, values, x_coords, y_coords, grid_x, 
 
 
 def generate_nc_file(file_name, grid_x, grid_y, years_df, coords_df, x_coords, y_coords):
+    print('generating netcdf file')
     temp_dir = tempfile.mkdtemp()
     file_path = os.path.join(temp_dir, file_name)
     h = netCDF4.Dataset(file_path, 'w', format="NETCDF4")
     lat_len = len(grid_y)
     lon_len = len(grid_x)
+    time = h.createDimension("time", 0)
+    lat = h.createDimension("lat", lat_len)
+    lon = h.createDimension("lon", lon_len)
     latitude = h.createVariable("lat", np.float64, ("lat"))
     longitude = h.createVariable("lon", np.float64, ("lon"))
     time = h.createVariable("time", np.float64, ("time"), fill_value="NaN")
