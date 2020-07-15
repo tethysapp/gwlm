@@ -8,3 +8,4 @@ This section describes how to install the Groundwater Data Mapper on a Tethys Pl
     :maxdepth: 2
 
     setup/webapp
+    setup/utils

@@ -30,6 +30,7 @@ from .model import (Region,
 def user_permission_test(user):
     """
     Check the permissions of the user
+
     Args:
         user: Django User
 
@@ -42,6 +43,7 @@ def user_permission_test(user):
 def get_session_obj():
     """
     Helper function to get SQL Alchemy Persistent Store Session Object
+
     Returns:
         SQL Alchemy Session Object
     """
@@ -53,6 +55,7 @@ def get_session_obj():
 def get_regions() -> List:
     """
     Get All Existing Regions from the Database
+
     Returns:
         list of tuples with region name and region id
     """
@@ -66,6 +69,7 @@ def get_regions() -> List:
 def get_region_select():
     """
     Generate Region Select Gizmo
+
     Returns:
         Tethys Select Input Gizmo Object to select regions
     """
@@ -80,6 +84,7 @@ def get_region_select():
 def get_aquifer_select(region_id: int, aquifer_id: bool = False) -> Any:
     """
     Generate Aquifer Select Gizmo
+
     Args:
         region_id: Region Id as listed in the Region table
         aquifer_id: Boolean to decide the aquifer id type
@@ -109,6 +114,7 @@ def get_aquifer_select(region_id: int, aquifer_id: bool = False) -> Any:
 def get_variable_list() -> List:
     """
     Generate list of all variables in the database
+
     Returns:
         a list of tuples with variable name, units and id
     """
@@ -122,6 +128,7 @@ def get_variable_list() -> List:
 def get_variable_select() -> Any:
     """
     Generate Variable Select Gizmo
+
     Returns:
         Tethys Select Input Gizmo Object to select variables
     """
@@ -136,6 +143,7 @@ def get_variable_select() -> Any:
 def get_region_variables_list(region_id: int) -> List:
     """
     Get a list of variables within a given region
+
     Args:
         region_id: Region Id as listed in the Region table
 
@@ -160,6 +168,7 @@ def get_region_variables_list(region_id: int) -> List:
 def get_metrics() -> Any:
     """
     Generate Summary Statistics of the database
+
     Returns:
         Plotly Figure Object of a Pandas DataFrame grouped by Region, Variable, and Measurements
     """
@@ -190,6 +199,7 @@ def get_metrics() -> Any:
 def get_region_aquifers_list(region_id: int) -> List:
     """
     Generate a list of aquifers for a given region
+
     Args:
         region_id: Region Id as listed in the Region table
 
@@ -206,6 +216,7 @@ def get_region_aquifers_list(region_id: int) -> List:
 def get_aquifers_list() -> List:
     """
     Generate a list of all the aquifers in the database
+
     Returns:
         A list of all aquifers tuples with aquifer name and id
     """
@@ -232,6 +243,7 @@ def get_num_wells() -> int:
 def get_num_measurements() -> int:
     """
     Get a count of all the measurements in the database
+
     Returns:
         The total number of measurements in the database
     """
@@ -244,6 +256,7 @@ def get_num_measurements() -> int:
 def get_region_variable_select(region_id: int) -> Any:
     """
     Generate a Variable Select Tethys Gizmo
+
     Args:
         region_id: Region Id as listed in the database
 
@@ -265,6 +278,7 @@ def process_region_shapefile(shapefile: Any,
                              app_workspace: Any) -> Dict:
     """
     Process Uploaded Region Shapefile
+
     Args:
         shapefile: list of shapefile files
         region_name: Region Name
@@ -307,6 +321,7 @@ def process_aquifer_shapefile(shapefile: Any,
                               app_workspace: Any) -> Dict:
     """
     Process uploaded auifer shapefile
+
     Args:
         shapefile: List of shapefile files
         region_id: Region id as listed in the database
@@ -364,6 +379,7 @@ def get_shapefile_gdf(shapefile: Any,
                       polygons: bool = True) -> Tuple[Any, Any]:
     """
     Helper function to process uploaded shapefile
+
     Args:
         shapefile: List of shapefile files
         app_workspace: Temp App Workspace
@@ -414,6 +430,7 @@ def get_shapefile_attributes(shapefile: Any,
                              polygons: bool = True) -> Any:
     """
     Get attributes from the uploaded shapefile
+
     Args:
         shapefile: list of shapefiles
         app_workspace: Temporary App workspace
@@ -446,6 +463,7 @@ def get_shapefile_attributes(shapefile: Any,
 def geoserver_text_gizmo() -> Any:
     """
     Geoserver Gizmo Input to Store Geoserver WFS Endpoint
+
     Returns:
         A Hidden Tethys Gizmo Input with Geoserver WFS Endpoint
     """
@@ -463,6 +481,7 @@ def geoserver_text_gizmo() -> Any:
 def thredds_text_gizmo() -> Any:
     """
     Thredds Gizmo Input to Store Thredds WMS Endpoint
+
     Returns:
         A Hidden Tethys Gizmo Input with Thredds WMS Endpoint
     """
@@ -489,6 +508,7 @@ def process_wells_file(lat: str,
                        region_id: int) -> Dict:
     """
     Add the uploaded Wells File to the Database
+
     Args:
         lat: Latitude Column String
         lon: Longitude Column String
@@ -580,6 +600,7 @@ def process_measurements_file(region_id: int,
                               app_workspace: Any) -> Dict:
     """
     Add uploaded measurements to the database
+
     Args:
         region_id: Region Id as listed in the Database
         well_id: Well Id Column String
@@ -660,6 +681,7 @@ def process_measurements_file(region_id: int,
 def get_timeseries(well_id: str, variable_id: int) -> List:
     """
     Generate Highcharts appropriate timeseries list
+
     Args:
         well_id: Well Id string as stored in the Measurement Table
         variable_id: Variable Id integer as stored in the variable/measurement table
@@ -680,6 +702,7 @@ def get_timeseries(well_id: str, variable_id: int) -> List:
 def get_well_obs(aquifer_id: int, variable_id: int) -> Dict:
     """
     Get a Dict containing the Count of Measurements for each well in an aquifer
+
     Args:
         aquifer_id: Aquifer Id Integer as listed in the database
         variable_id: Variable Id Integer as listed in the database
@@ -705,6 +728,7 @@ def get_well_obs(aquifer_id: int, variable_id: int) -> Dict:
 def get_well_info(well_id: str) -> Dict:
     """
     Get well info for chart metadata
+
     Args:
         well_id: Well Id String from the popup
 
@@ -727,6 +751,7 @@ def get_well_info(well_id: str) -> Dict:
 def create_outlier(well_id: str) -> bool:
     """
     Set outlier based on selected well id
+
     Args:
         well_id: Well Id string from popup click
 
@@ -747,6 +772,7 @@ def create_outlier(well_id: str) -> bool:
 def get_wms_datasets(aquifer_name: str, variable_id: str, region_id: str) -> List:
     """
     Get a list of all available wms datasets for given region, aquifer, and variable
+
     Args:
         aquifer_name: Selected Aquifer Name from the Region Map page
         variable_id: Selected Variable Id from the Region Map page
@@ -767,6 +793,7 @@ def get_wms_datasets(aquifer_name: str, variable_id: str, region_id: str) -> Lis
 def get_wms_metadata(aquifer_name: str, file_name: str, region_id: str) -> Tuple[int, int]:
     """
     Get min and max for selected wms layer
+
     Args:
         aquifer_name: Selected Aquifer Name
         file_name: Selected netcdf file name

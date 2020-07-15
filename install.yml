@@ -23,4 +23,5 @@ requirements:
     - matplotlib
     - sphinx
     - sphinx-rtd-theme
+    - sphinxcontrib-napoleon
 post:

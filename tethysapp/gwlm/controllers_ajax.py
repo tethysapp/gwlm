@@ -6,7 +6,11 @@ from django.http import JsonResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import ObjectDeletedError
 from tethys_sdk.workspaces import app_workspace
+from tethys_sdk.compute import get_scheduler
 
+# get job manager for the app
+from .app import Gwlm as app
+job_manager = app.get_job_manager()
 from .interpolation_utils import process_interpolation
 from .model import (Region,
                     Aquifer,
@@ -639,8 +643,23 @@ def interpolate(request):
         # get/check information from AJAX request
         try:
             post_info = request.POST
+            # scheduler = get_scheduler(name='dask_local')
+
             info_dict = post_info.dict()
             result = process_interpolation(info_dict)
+            # from .job_functions import delayed_job
+            #
+            # # Create dask delayed object
+            # delayed = delayed_job(info_dict)
+            # dask = job_manager.create_job(
+            #     job_type='DASK',
+            #     name='dask_delayed',
+            #     user=request.user,
+            #     scheduler=scheduler,
+            # )
+            #
+            # # Execute future
+            # dask.execute(delayed)
             response['success'] = 'success'
             response['result'] = result
         except Exception as e:
