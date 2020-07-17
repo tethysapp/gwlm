@@ -60,3 +60,49 @@ Clone the app repository into a directory of choice and install it
     tethys install -d
 
 **Web Admin Setup**
+
+Go to Web Admin Setup through the Django Site Admin Panel after logging in as admin. Username *admin* Password *pass*. If the app hasn't been configured you can simply click on the app to go the app admin panel.
+
+Home › Tethys Apps › Installed Apps › Groundwater Data Mapper
+
+.. figure:: /images/admin_panel.PNG
+    :width: 100%
+    :align: center
+    :alt: Admin Panel
+    :figclass: align-center
+
+-   Set gw_thredds_directory
+
+    *   Create a directory called groundwater under the testdata folder in thredds
+
+        *   /home/dev/Thredds/public/testdata/groundwater
+
+    * Paste the path to directory in the custom_settings input text box
+
+-   Set persistent_store_setting
+
+    * Create a persistent store service by clicking on the plus sign next to the persistent store service dropdown. Set the appropriate values based on the values that were set while initializing the postgis docker container. The following is an example, your values might vary.
+
+        *   Engine: PostgreSQL
+        *   Host: localhost
+        *   Port: 5435
+        *   Username: postgres
+        *   Password: pass
+
+-   Set primary geoserver setting
+
+    * Create a spatial dataset service by clicking on the plus sign next to the spatial store service dropdown. Set the appropriate values based on the values that were set while initializing the geoserver docker container. The following is an example, your values might vary. You can skip Public Endpoint and Api Key if they haven't been configured.
+
+        *   Engine: GeoServer
+        *   Endpoint: http://127.0.0.1:8181/geoserver
+        *   Username: admin
+        *   Password: geoserver
+
+-   Set primary thredds setting
+
+    * Create a spatial dataset service by clicking on the plus sign next to the spatial store service dropdown. Set the appropriate values based on the values that were set while initializing the thredds docker container. The following is an example, your values might vary. You can skip Public Endpoint and Api Key if they haven't been configured.
+
+        *   Engine: THREDDS
+        *   Endpoint: http://127.0.0.1:8383/thredds/
+        *   Username: admin
+        *   Password: pass
