@@ -6,10 +6,11 @@ from tethys_sdk.compute import get_scheduler
 from tethys_sdk.gizmos import Button, TextInput, SelectInput
 from tethys_sdk.gizmos import JobsTable, PlotlyView
 
-from .app import Gwlm as app
+# from .app import Gwlm as app
 from .model import Variable
 from .utils import (get_regions,
                     get_aquifers_list,
+                    get_geoserver_status,
                     get_num_wells,
                     get_num_measurements,
                     get_variable_list,
@@ -24,7 +25,7 @@ from .utils import (get_regions,
 from .utils import user_permission_test
 
 # get job manager for the app
-job_manager = app.get_job_manager()
+# job_manager = app.get_job_manager()
 
 
 def home(request):
@@ -38,6 +39,26 @@ def home(request):
     }
 
     return render(request, 'gwlm/home.html', context)
+
+
+def config(request):
+    """
+    Controller for helping setup the app
+    """
+    add_geoserver_config = Button(display_text='Configure GeoServer',
+                                  icon='glyphicon glyphicon-plus',
+                                  style='success',
+                                  name='submit',
+                                  attributes={'id': 'submit'},
+                                  classes="add")
+    workspace_status, store_status, layer_status = get_geoserver_status()
+    context = {
+        'add_geoserver_config': add_geoserver_config,
+        'workspace_status': workspace_status,
+        'store_status': store_status,
+        'layer_status': layer_status
+    }
+    return render(request, 'gwlm/config.html', context)
 
 
 def metrics(request):

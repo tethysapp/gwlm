@@ -31,6 +31,11 @@ class Gwlm(TethysAppBase):
                 controller='gwlm.controllers.home'
             ),
             UrlMap(
+                name='config',
+                url='gwlm/config',
+                controller='gwlm.controllers.config'
+            ),
+            UrlMap(
                 name='metrics',
                 url='gwlm/metrics',
                 controller='gwlm.controllers.metrics'

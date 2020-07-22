@@ -17,6 +17,7 @@
 
 {% url 'gwlm:home' as home_url %}
 {% url 'gwlm:metrics' as metrics_url %}
+{% url 'gwlm:config' as config_url %}
 {% url 'gwlm:interpolation' as interpolation_url %}
 {% url 'gwlm:jobs-table' as jobs_table %}
 {% url 'gwlm:add-region' as add_region_url %}
@@ -33,6 +34,7 @@
 <li class="{% if request.path == metrics_url %}active{% endif %}"><a href="{{metrics_url}}">Summary Statistics</a></li>
 {% if user.is_superuser or user.is_staff %}
 <li class="title">Configuration</li>
+<li class="{% if request.path == config_url %}active{% endif %}"><a href="{{config_url}}">Configure App</a></li>
 <li class="{% if request.path == interpolation_url %}active{% endif %}"><a href="{{interpolation_url}}">Interpolation Wizard</a></li>
 <li class="{% if request.path == jobs_table %}active{% endif %}"><a href="{{jobs_table}}">Interpolation Jobs Table</a></li>
 <li class="{% if request.path == add_region_url %}active{% endif %}"><a href="{{add_region_url}}">Add Region</a></li>

@@ -5,7 +5,7 @@ import shutil
 import time
 import uuid
 from datetime import datetime
-from typing import List, Any, Dict, Tuple
+from typing import List, Any, Dict, Tuple, Union
 
 import geopandas as gpd
 import pandas as pd
@@ -81,7 +81,7 @@ def get_region_select():
     return region_select
 
 
-def get_aquifer_select(region_id: int, aquifer_id: bool = False) -> Any:
+def get_aquifer_select(region_id: Union[int, None], aquifer_id: bool = False) -> Any:
     """
     Generate Aquifer Select Gizmo
 
@@ -253,7 +253,7 @@ def get_num_measurements() -> int:
     return measurements
 
 
-def get_region_variable_select(region_id: int) -> Any:
+def get_region_variable_select(region_id: Union[int, None]) -> Any:
     """
     Generate a Variable Select Tethys Gizmo
 
@@ -811,3 +811,28 @@ def get_wms_metadata(aquifer_name: str, file_name: str, region_id: str) -> Tuple
     range_min = int(ds.tsvalue.min().values)
     range_max = int(ds.tsvalue.max().values)
     return range_min, range_max
+
+
+def get_geoserver_status():
+    gs_engine = app.get_spatial_dataset_service('primary_geoserver', as_engine=True)
+    workspaces = gs_engine.list_workspaces()['result']
+    ws_name = 'gwlm'
+    store_name = 'postgis'
+    if ws_name in workspaces:
+        workspace_status = 'Configured'
+        stores = gs_engine.list_stores(workspace=ws_name)['result']
+        if store_name in stores:
+            store_status = 'Configured'
+            layers = gs_engine.list_resources(store=store_name, workspace=ws_name)['result']
+            if all(x in layers for x in ['well', 'aquifer', 'region']):
+                layer_status = 'Configured'
+            else:
+                layer_status = 'Not Setup'
+        else:
+            store_status = 'Not Setup'
+            layer_status = 'Not Setup'
+    else:
+        workspace_status = 'Not Setup'
+        store_status = 'Not Setup'
+        layer_status = 'Not Setup'
+    return workspace_status, store_status, layer_status

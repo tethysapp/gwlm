@@ -1,5 +1,6 @@
 import dask
 import requests
+from .interpolation_utils import process_interpolation
 
 # from .interpolation_utils import process_interpolation
 
@@ -27,11 +28,11 @@ INFO_DICT = {'region': '3',
              'spacing': '1MS'}
 
 
-# def dask_interp(info_dict):
-#     result = process_interpolation(info_dict)
-#     return result
-#
-#
-# # Delayed Job
-# def delayed_job(info_dict):
-#     return dask.delayed(dask_interp(info_dict), pure=False)
+def dask_interp(info_dict):
+    result = process_interpolation(info_dict)
+    return result
+
+
+# Delayed Job
+def delayed_job(info_dict):
+    return dask.delayed(dask_interp(info_dict), pure=False)

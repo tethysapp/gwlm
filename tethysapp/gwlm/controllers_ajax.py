@@ -643,12 +643,12 @@ def interpolate(request):
         # get/check information from AJAX request
         try:
             post_info = request.POST
-            # scheduler = get_scheduler(name='dask_local')
+            scheduler = get_scheduler(name='dask_local')
 
             info_dict = post_info.dict()
             result = process_interpolation(info_dict)
             # from .job_functions import delayed_job
-            #
+            # #
             # # Create dask delayed object
             # delayed = delayed_job(info_dict)
             # dask = job_manager.create_job(
